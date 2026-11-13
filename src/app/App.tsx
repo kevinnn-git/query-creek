@@ -32,6 +32,19 @@ export const App: React.FC = () => {
     let isMounted = true;
     let diagInterval: any = null;
 
+    // Check URL parameters for testing & visual verification
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('deadeye') === '1') {
+      useGameStore.getState().setDeadEyeActive(true);
+    }
+    if (searchParams.get('spellcast') === '1') {
+      useGameStore.getState().setDeadEyeActive(true);
+      useGameStore.getState().showQuestNotification(
+        'CRITICAL ELEMENTAL WEAKNESS EXPLOITED!',
+        'Tactical SQL JOIN executed: Shock Arc struck Syndicate Enforcer Vance for 60 damage (WEAKNESS DETECTED: 2x DAMAGE & STUNNED)!'
+      );
+    }
+
     async function initGame() {
       if (!canvasRef.current) return;
 

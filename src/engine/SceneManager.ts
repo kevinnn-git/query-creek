@@ -15,6 +15,9 @@ import { PlayerInput } from '../player/PlayerInput';
 import { CameraController } from '../player/CameraController';
 import { Player } from '../player/Player';
 import { InteractableManager } from '../world/InteractableManager';
+import { EnemyManager } from '../combat/EnemyManager';
+import { DeadEyeManager } from '../combat/DeadEyeManager';
+import { SpellManager } from '../combat/SpellManager';
 import { useGameStore } from '../store/useGameStore';
 
 export interface SceneDiagnostics {
@@ -39,6 +42,8 @@ export class SceneManager {
   public playerInput: PlayerInput;
   public player: Player;
   public interactableManager: InteractableManager;
+  public enemyManager: EnemyManager;
+  public deadEyeManager: DeadEyeManager;
 
   private lastTime: number = performance.now();
 
@@ -60,6 +65,17 @@ export class SceneManager {
 
     this.player = new Player(this.scene, this.playerInput, this.cameraController);
     this.interactableManager = new InteractableManager(this.scene);
+    this.deadEyeManager = DeadEyeManager.getInstance();
+
+    this.enemyManager = new EnemyManager(
+      this.scene,
+      () => this.player.getPosition(),
+      (damage) => {
+        if (!this.player.isInvulnerable) {
+          useGameStore.getState().damagePlayer(damage);
+        }
+      }
+    );
   }
 
   public async initializeScene(): Promise<void> {
@@ -285,15 +301,48 @@ export class SceneManager {
       this.playerInput.setEnabled(canMove);
 
       if (canMove) {
+        // Handle Dead-Eye Toggle
+        if (this.playerInput.deadEye) {
+          this.playerInput.deadEye = false;
+          this.deadEyeManager.toggle();
+        }
+
+        // Update Dead-Eye Time Dilation & Focus
+        const deState = this.deadEyeManager.update(deltaTime);
+        if (store.isDeadEyeActive !== deState.isActive) {
+          store.setDeadEyeActive(deState.isActive);
+        }
+        store.setDeadEyeFocus(deState.focusMeter);
+
+        const effectiveDt = deltaTime * deState.timeScale;
+
         // 1. Update Player Movement & Locomotion Animations
-        this.player.update(deltaTime);
+        this.player.update(effectiveDt);
 
         // 2. Consume Mouse Deltas & Update Camera
         const { dx, dy } = this.playerInput.consumeMouseDeltas();
-        this.cameraController.update(this.player.getPosition(), dx, dy, deltaTime);
+        this.cameraController.update(this.player.getPosition(), dx, dy, effectiveDt);
 
-        // 3. Update Nearby Interactables
-        const nearby = this.interactableManager.update(this.player.getPosition(), deltaTime);
+        // 3. Handle Player Attack (Left-Click)
+        if (this.playerInput.attack) {
+          this.playerInput.attack = false;
+          const aimDir = this.cameraController.getForwardVector();
+          const muzzlePos = this.player.getPosition().add(new Vector3(0, 1.2, 0));
+          this.enemyManager.shootPlayerBullet(muzzlePos, aimDir);
+        }
+
+        // 4. Handle Dead-Eye Quick-Cast Spells [1-4]
+        if (deState.isActive && this.playerInput.quickSlot !== null) {
+          const slot = this.playerInput.quickSlot;
+          this.playerInput.quickSlot = null;
+          SpellManager.getInstance().castQuickSlot(slot);
+        }
+
+        // 5. Update Enemy AI, Patrols, and Combat Simulation
+        this.enemyManager.update(deltaTime, deState.timeScale);
+
+        // 6. Update Nearby Interactables
+        const nearby = this.interactableManager.update(this.player.getPosition(), effectiveDt);
         if (nearby) {
           store.setActivePrompt(nearby.prompt);
 
@@ -306,7 +355,7 @@ export class SceneManager {
           store.setActivePrompt(null);
         }
 
-        // 4. Handle 'Q' Sheriff's Sense
+        // 7. Handle 'Q' Sheriff's Sense
         if (this.playerInput.sheriffSense) {
           this.playerInput.sheriffSense = false;
           this.interactableManager.triggerSheriffSense(5.0);

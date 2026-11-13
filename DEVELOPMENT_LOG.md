@@ -127,3 +127,76 @@
   - `phase2_interrogation_contradiction.png` (103 KB) — Gideon Vale interrogation with shattered alibi banner.
   - `phase2_sql_pinning.png` (102 KB) — SQL Grimoire Level 2 query execution with "Pin" evidence action.
 
+---
+
+### [2026-11-13] — Phase 3: Combat and Dead-Eye
+
+#### 1. Database Schema & Spells Architecture (`src/db/sqlite.worker.ts`)
+- Added 4 combat and magical ledger tables to SQLite WASM:
+  - `powers`: Arcane Sheriff powers and spells (`spell_id`, `spell_name`, `sql_template`, `mana_cost`, `damage`, `element`, `description`).
+  - `active_enemies`: Live combatant entities synchronized with in-world enemies (`enemy_id`, `name`, `archetype`, `hp`, `max_hp`, `weakness`, `position_x`, `position_z`, `status`).
+  - `enemy_weaknesses`: Elemental and tactical vulnerability matrix (`archetype`, `weakness_element`, `damage_multiplier`, `notes`).
+  - `spell_effects`: Combat combatant status effects and historical audit trail (`effect_id`, `enemy_id`, `spell_id`, `damage_dealt`, `applied_at`).
+- Seeded spells:
+  - Deadeye Volley (Arcane, 45 dmg, 15 mana).
+  - Thunderstrike (Shock, 30 dmg + 2x weakness multiplier & stun, 25 mana).
+  - Powder Keg (Fire, 80 dmg, 35 mana).
+  - Arcane Ward (Ward shield, 0 dmg, 20 mana).
+- Seeded live syndicate combatants: Syndicate Enforcer Vance (weak to Shock), Outlaw Rifleman Jesse (weak to Fire), Ironclad Guard Bronn (weak to Shock).
+
+#### 2. Enemy AI System (`src/combat/EnemyAI.ts`, `src/combat/EnemyManager.ts`)
+- Implemented finite-state machine AI (`PATROL` -> `CHASE` -> `ATTACK` -> `STUNNED` -> `DEFEATED`):
+  - Perception radius: 18m detection zone with target acquisition.
+  - Attack range: 10m engagement radius.
+  - Attack cooldown timer with dynamic projectile volley generation.
+  - Stunned state triggered automatically upon striking an elemental weakness.
+  - Defeat state disabling movement, collision, and health bars.
+- Integrated `EnemyManager` managing 3 active Syndicate Enforcers with 3D billboard health gauges, projectile tracking, and live synchronization to the SQLite WASM `active_enemies` table.
+
+#### 3. Dead-Eye Time Dilation Subsystem (`src/combat/DeadEyeManager.ts`)
+- Implemented cinematic slow-motion mechanics:
+  - Time dilation scaling down engine delta time to `0.15x`.
+  - Gradual focus meter consumption (20 focus/second) and automatic recharge (15 focus/second).
+  - Toggled via `F` or `Right-Click`.
+  - Shader post-processing with golden-hour sepia gradient vignette and focused targeting reticle.
+
+#### 4. Real-Time SQL Spellcasting Subsystem (`src/combat/SpellManager.ts`)
+- Real-time execution of SQL queries against the local SQLite WASM database:
+  - Quick-Cast slots `[1]` through `[4]` mapped to spells in `powers`.
+  - Tactical SQL JOIN query execution:
+    `SELECT p.spell_name, e.enemy_id, p.damage, p.element FROM powers p JOIN active_enemies e ON p.element = e.weakness WHERE e.hp > 0;`
+  - Automatically identifies target weaknesses, applies 2x critical damage multipliers, inflicts `STUNNED` state, and logs effects in `spell_effects`.
+  - Deducts player mana and updates in-world enemy health.
+
+#### 5. Player Combat Controls & Movement (`src/player/Player.ts`, `src/player/PlayerInput.ts`)
+- Implemented **Dodge Roll** on `C` key:
+  - 400ms invulnerability frames (i-frames).
+  - Blended animation with `HumanArmature|Roll`.
+  - Directional roll burst along current movement heading.
+- Implemented **Revolver Shooting** on `Left-Click`:
+  - Raycasted projectile towards screen crosshair.
+  - Audio feedback cue and dynamic bullet impact.
+- Quick-Cast hotkeys `1`, `2`, `3`, `4` active during Dead-Eye.
+
+#### 6. Combat User Interface (`src/ui/HUD.tsx`, `src/ui/DeadEyeCombatBar.tsx`)
+- Added real-time Player Health Bar (100 HP) with rose styling and Arcane Mana Bar (100 MP) with cyan styling.
+- Screen-centered crosshair reticle with animated pulsing expansion during Dead-Eye.
+- Implemented `DeadEyeCombatBar.tsx`:
+  - Visual Focus Gauge.
+  - 4 Quick-Cast slot buttons showing spell names, elements, MP costs, and damage stats.
+  - Custom SQL spell query input field with `▶ Cast` button.
+  - Toast banner for critical elemental weakness hits and spell strikes.
+
+#### 7. Verification & Automated Testing
+- Automated unit test suite passed: **25/25 tests passing** across 4 suites:
+  - `combat.test.js`: Enemy AI state transitions, weakness exploitation (2x dmg + stun), time dilation (0.15x), SQLite tactical JOIN queries.
+  - `investigation.test.js`: Witness contradictions, alibi shattering, corkboard integrity.
+  - `curriculum.test.js`: SQL validation and pedagogical feedback.
+  - `sqlite.test.js`: SQLite WASM worker initialization and schema verification.
+- Production build passed: `tsc -b && vite build` built in 36.48s with 0 errors.
+- High-fidelity visual verification screenshots captured:
+  - `phase3_combat_scene.png` (65 KB) — 3D scene with crosshair, HUD health/mana bars, and sheriff combat controls.
+  - `phase3_deadeye_active.png` (253 KB) — Dead-Eye active with sepia vignette, focus gauge, and SQL Arcane Quick-Cast combat bar.
+  - `phase3_spell_cast.png` (288 KB) — Executed tactical SQL JOIN weakness strike with toast notification and damage feedback.
+
+

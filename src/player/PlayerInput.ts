@@ -8,6 +8,9 @@ export class PlayerInput {
   public interact: boolean = false;
   public sheriffSense: boolean = false;
   public deadEye: boolean = false;
+  public dodge: boolean = false;
+  public attack: boolean = false;
+  public quickSlot: number | null = null;
 
   public mouseDeltaX: number = 0;
   public mouseDeltaY: number = 0;
@@ -26,7 +29,9 @@ export class PlayerInput {
     window.addEventListener('keyup', this.handleKeyUp);
     document.addEventListener('pointerlockchange', this.handlePointerLockChange);
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
-    this.canvas.addEventListener('click', this.requestPointerLock);
+    this.canvas.addEventListener('mousedown', this.handleMouseDown);
+    this.canvas.addEventListener('mouseup', this.handleMouseUp);
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   public setEnabled(enabled: boolean) {
@@ -86,6 +91,21 @@ export class PlayerInput {
       case 'KeyF':
         this.deadEye = true;
         break;
+      case 'KeyC':
+        this.dodge = true;
+        break;
+      case 'Digit1':
+        this.quickSlot = 1;
+        break;
+      case 'Digit2':
+        this.quickSlot = 2;
+        break;
+      case 'Digit3':
+        this.quickSlot = 3;
+        break;
+      case 'Digit4':
+        this.quickSlot = 4;
+        break;
     }
   };
 
@@ -123,6 +143,30 @@ export class PlayerInput {
       case 'KeyF':
         this.deadEye = false;
         break;
+      case 'KeyC':
+        this.dodge = false;
+        break;
+    }
+  };
+
+  private handleMouseDown = (e: MouseEvent) => {
+    if (!this.isPointerLocked) {
+      this.requestPointerLock();
+      return;
+    }
+
+    if (e.button === 0) {
+      this.attack = true;
+    } else if (e.button === 2) {
+      this.deadEye = true;
+    }
+  };
+
+  private handleMouseUp = (e: MouseEvent) => {
+    if (e.button === 0) {
+      this.attack = false;
+    } else if (e.button === 2) {
+      this.deadEye = false;
     }
   };
 

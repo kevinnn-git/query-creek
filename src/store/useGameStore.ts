@@ -62,6 +62,20 @@ export interface GameStore {
   showQuestNotification: (title: string, message: string) => void;
   clearQuestNotification: () => void;
 
+  // Combat & Dead-Eye State
+  playerHealth: number;
+  playerMaxHealth: number;
+  playerMana: number;
+  playerMaxMana: number;
+  isDeadEyeActive: boolean;
+  deadEyeFocus: number;
+  damagePlayer: (amount: number) => void;
+  healPlayer: (amount: number) => void;
+  consumePlayerMana: (amount: number) => void;
+  restorePlayerMana: (amount: number) => void;
+  setDeadEyeActive: (active: boolean) => void;
+  setDeadEyeFocus: (focus: number) => void;
+
   // Story & Curriculum
   currentChapter: string;
   currentObjective: string;
@@ -299,6 +313,24 @@ export const useGameStore = create<GameStore>((set) => ({
   setActiveDialogue: (activeDialogue) => set({ activeDialogue, activeModal: activeDialogue ? 'dialogue' : 'none' }),
   showQuestNotification: (title, message) => set({ activeQuestNotification: { title, message } }),
   clearQuestNotification: () => set({ activeQuestNotification: null }),
+
+  // Combat & Dead-Eye
+  playerHealth: 100,
+  playerMaxHealth: 100,
+  playerMana: 100,
+  playerMaxMana: 100,
+  isDeadEyeActive: false,
+  deadEyeFocus: 100,
+  damagePlayer: (amount) =>
+    set((state) => ({ playerHealth: Math.max(0, state.playerHealth - amount) })),
+  healPlayer: (amount) =>
+    set((state) => ({ playerHealth: Math.min(state.playerMaxHealth, state.playerHealth + amount) })),
+  consumePlayerMana: (amount) =>
+    set((state) => ({ playerMana: Math.max(0, state.playerMana - amount) })),
+  restorePlayerMana: (amount) =>
+    set((state) => ({ playerMana: Math.min(state.playerMaxMana, state.playerMana + amount) })),
+  setDeadEyeActive: (isDeadEyeActive) => set({ isDeadEyeActive }),
+  setDeadEyeFocus: (deadEyeFocus) => set({ deadEyeFocus }),
 
   // Story
   currentChapter: 'Chapter 1: The Disappearance of Rowan Hale',

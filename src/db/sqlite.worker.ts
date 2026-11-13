@@ -69,6 +69,45 @@ CREATE TABLE IF NOT EXISTS witness_statements (
   official_summary TEXT NOT NULL
 );
 
+-- Arcane Spells & Combat Powers
+CREATE TABLE IF NOT EXISTS powers (
+  power_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  spell_name TEXT NOT NULL,
+  element TEXT NOT NULL,
+  damage INTEGER NOT NULL,
+  mana_cost INTEGER NOT NULL,
+  description TEXT NOT NULL
+);
+
+-- Active Combat Enemies (dynamically synced with engine simulation)
+CREATE TABLE IF NOT EXISTS active_enemies (
+  enemy_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  archetype TEXT NOT NULL,
+  hp INTEGER NOT NULL,
+  max_hp INTEGER NOT NULL,
+  element TEXT NOT NULL,
+  weakness TEXT NOT NULL,
+  status TEXT DEFAULT 'active'
+);
+
+-- Enemy Elemental Weakness Reference
+CREATE TABLE IF NOT EXISTS enemy_weaknesses (
+  enemy_type TEXT PRIMARY KEY,
+  weakness_element TEXT NOT NULL,
+  damage_multiplier REAL DEFAULT 2.0,
+  tactical_notes TEXT
+);
+
+-- Spell Status Effects
+CREATE TABLE IF NOT EXISTS spell_effects (
+  effect_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  element TEXT NOT NULL,
+  status_inflicted TEXT NOT NULL,
+  duration_sec REAL NOT NULL
+);
+
 -- Initial seed data for Query Creek
 INSERT OR IGNORE INTO citizens (citizen_id, name, occupation, status, reputation, notes) VALUES
 (1, 'Rowan Hale', 'Sheriff', 'missing', 90, 'Appointed 1888. Disappeared mysteriously 3 weeks ago while investigating bank manifests.'),
@@ -110,6 +149,27 @@ INSERT OR IGNORE INTO witness_statements (statement_id, witness_name, interview_
 (1, 'Gideon Vale', '1891-10-15', 'I was retired in my Town Hall residence by 9:00 PM and never went near the bank or touched the vault.', 'Claims absolute absence from Ironvault Bank during night of crime'),
 (2, 'Silas Thorne', '1891-10-15', 'The saloon was full until 11 PM. Mara Voss left early around 8:45 PM. Mayor Vale visited my back room around 10:30 PM whispering about ledger audits.', 'Mentions Mayor Vale was outside Town Hall late at night'),
 (3, 'Mara Voss', '1891-10-16', 'I never touched the vault. Gideon Vale framed me because Rowan Hale gave me a copy of the second ledger.', 'Alleges Vale is orchestrating the heist to wipe bank debt');
+
+INSERT OR IGNORE INTO powers (power_id, spell_name, element, damage, mana_cost, description) VALUES
+(1, 'Arcane Deadeye Volley', 'Arcane', 45, 15, 'Homing arcane bullets seeking enemy weakpoints.'),
+(2, 'Frontier Thunderstrike', 'Shock', 65, 25, 'High-voltage lightning burst that stuns mechanical and ironclad armor.'),
+(3, 'Hellfire Powder Keg', 'Fire', 80, 35, 'Explosive combustive flame causing massive area burn damage.'),
+(4, 'Glacial Frost Ward', 'Frost', 40, 20, 'Freezing shards that shatter enemy shields and slow movement.');
+
+INSERT OR IGNORE INTO active_enemies (enemy_id, name, archetype, hp, max_hp, element, weakness, status) VALUES
+(1, 'Syndicate Enforcer Vance', 'Enforcer', 100, 100, 'Physical', 'Shock', 'active'),
+(2, 'Outlaw Rifleman Jesse', 'Rifleman', 75, 75, 'Physical', 'Fire', 'active'),
+(3, 'Ironclad Guard Bronn', 'Brawler', 150, 150, 'Iron', 'Shock', 'active');
+
+INSERT OR IGNORE INTO enemy_weaknesses (enemy_type, weakness_element, damage_multiplier, tactical_notes) VALUES
+('Enforcer', 'Shock', 2.0, 'Heavy iron breastplate conducts electrical arcs, causing immediate stun.'),
+('Rifleman', 'Fire', 2.0, 'Carries dry gunpowder bandoliers susceptible to ignition.'),
+('Brawler', 'Shock', 2.5, 'Reinforced hydraulic mining prosthetics fail under electrical current.');
+
+INSERT OR IGNORE INTO spell_effects (effect_id, name, element, status_inflicted, duration_sec) VALUES
+(1, 'Electrocuted', 'Shock', 'STUNNED', 3.0),
+(2, 'Ignited', 'Fire', 'BURNING', 4.5),
+(3, 'Frozen', 'Frost', 'SLOWED', 4.0);
 `;
 
 async function initDatabase(): Promise<string> {

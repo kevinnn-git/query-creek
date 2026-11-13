@@ -78,3 +78,4 @@ test('Investigation & Evidence Contradiction Subsystem', async (t) => {
     assert.ok(contradictionLink, 'Should feature an initial contradiction hypothesis link');
   });
 });
+

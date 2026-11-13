@@ -29,6 +29,14 @@ export class Player {
   public gravity: number = -20.0;
   public rotationSpeed: number = 14.0;
 
+  // Combat Dodge
+  public isDodging: boolean = false;
+  public isInvulnerable: boolean = false;
+  private dodgeTimer: number = 0;
+  private readonly dodgeDuration: number = 0.55;
+  private readonly dodgeSpeed: number = 9.5;
+  private dodgeDirection: Vector3 = new Vector3(0, 0, 1);
+
   private currentHeading: number = 0; // in radians
   private characterMeshes: AbstractMesh[] = [];
 
@@ -135,15 +143,33 @@ export class Player {
     const isSprinting = this.input.sprint && hasMoveInput;
     const targetSpeed = hasMoveInput ? (isSprinting ? this.sprintSpeed : this.walkSpeed) : 0;
 
-    // 3. Acceleration & velocity horizontal lerp
-    if (hasMoveInput) {
+    // Handle Active Dodge Roll
+    if (this.isDodging) {
+      this.dodgeTimer -= deltaTime;
+      this.velocity.x = this.dodgeDirection.x * this.dodgeSpeed;
+      this.velocity.z = this.dodgeDirection.z * this.dodgeSpeed;
+      this.playAnimation('Roll', 0.1);
+
+      if (this.dodgeTimer <= 0) {
+        this.isDodging = false;
+        this.isInvulnerable = false;
+      }
+    } else if (this.isGrounded && this.input.dodge) {
+      this.isDodging = true;
+      this.isInvulnerable = true;
+      this.dodgeTimer = this.dodgeDuration;
+
+      // Dodge in current move direction or forward
+      const forward = this.cameraController.getForwardVector();
+      this.dodgeDirection = hasMoveInput ? inputDir.clone() : new Vector3(forward.x, 0, forward.z).normalize();
+      this.playAnimation('Roll', 0.1);
+    } else if (hasMoveInput) {
       inputDir.normalize();
       this.velocity.x = inputDir.x * targetSpeed;
       this.velocity.z = inputDir.z * targetSpeed;
 
       // Smoothly rotate character toward movement heading
       const targetHeading = Math.atan2(inputDir.x, inputDir.z);
-      // Angular shortest angle interpolation
       let angleDiff = targetHeading - this.currentHeading;
       while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;

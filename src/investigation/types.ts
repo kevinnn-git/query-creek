@@ -42,3 +42,4 @@ export interface ContradictionRule {
   storyProgressObjective: string;
   advancesChapter?: string;
 }
+
