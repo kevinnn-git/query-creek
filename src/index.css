@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-western-dark text-amber-100 select-none overflow-hidden m-0 p-0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+/* Custom scrollbars for Noir / Western feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1614;
+}
+::-webkit-scrollbar-thumb {
+  background: #4a2e18;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c5a059;
+}
+
+/* CodeMirror 6 custom styling for Frontier Noir */
+.cm-editor {
+  background-color: #120f0d !important;
+  color: #fdf6e2 !important;
+  font-family: 'Fira Code', 'Courier New', monospace !important;
+  font-size: 14px;
+}
+.cm-gutters {
+  background-color: #1a1614 !important;
+  color: #704214 !important;
+  border-right: 1px solid #4a2e18 !important;
+}
+.cm-activeLineGutter {
+  background-color: #2b1f17 !important;
+  color: #c5a059 !important;
+}
+.cm-activeLine {
+  background-color: rgba(197, 160, 89, 0.08) !important;
+}
+.cm-cursor {
+  border-left-color: #c5a059 !important;
+}
+.cm-selectionBackground, .cm-editor ::selection {
+  background-color: rgba(197, 160, 89, 0.25) !important;
+}
+
