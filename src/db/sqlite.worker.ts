@@ -69,6 +69,87 @@ CREATE TABLE IF NOT EXISTS witness_statements (
   official_summary TEXT NOT NULL
 );
 
+-- Bank accounts at Ironvault Bank
+CREATE TABLE IF NOT EXISTS bank_accounts (
+  account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  citizen_id INTEGER,
+  account_number TEXT UNIQUE NOT NULL,
+  account_name TEXT NOT NULL,
+  balance_gold REAL NOT NULL,
+  tier TEXT DEFAULT 'standard',
+  created_date TEXT NOT NULL,
+  is_frozen INTEGER DEFAULT 0,
+  FOREIGN KEY (citizen_id) REFERENCES citizens(citizen_id)
+);
+
+-- Telegraph dispatches through Western Union station
+CREATE TABLE IF NOT EXISTS telegraph_dispatches (
+  dispatch_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sender TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  encoded_cipher TEXT NOT NULL,
+  decrypted_message TEXT NOT NULL,
+  priority TEXT DEFAULT 'routine',
+  timestamp TEXT NOT NULL
+);
+
+-- Apothecary medical and forensic examination reports
+CREATE TABLE IF NOT EXISTS medical_examinations (
+  report_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  deceased_name TEXT NOT NULL,
+  examiner TEXT NOT NULL,
+  cause_of_death TEXT NOT NULL,
+  toxicology_notes TEXT,
+  date_recorded TEXT NOT NULL,
+  is_tampered INTEGER DEFAULT 0
+);
+
+-- Redrock Train Depot cargo shipping manifests
+CREATE TABLE IF NOT EXISTS train_cargo_manifests (
+  manifest_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  train_number TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  cargo_type TEXT NOT NULL,
+  declared_weight_lbs INTEGER NOT NULL,
+  actual_weight_lbs INTEGER NOT NULL,
+  contraband_flags TEXT,
+  shipment_date TEXT NOT NULL
+);
+
+-- Whispering Pines Cemetery plot register
+CREATE TABLE IF NOT EXISTS cemetery_plots (
+  plot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  deceased_name TEXT NOT NULL,
+  burial_date TEXT NOT NULL,
+  grave_status TEXT NOT NULL,
+  inscribed_epitaph TEXT,
+  depth_feet REAL NOT NULL
+);
+
+-- The Syndicate Master Ledger (Rowan Hale's recovery target)
+CREATE TABLE IF NOT EXISTS syndicate_ledger (
+  ledger_entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  alias TEXT NOT NULL,
+  real_name TEXT NOT NULL,
+  syndicate_role TEXT NOT NULL,
+  cut_percentage REAL NOT NULL,
+  payout_total_gold REAL NOT NULL,
+  tier_level INTEGER NOT NULL
+);
+
+-- Boss Arcane Shield Layers (Mayor Gideon Vale's boss barrier)
+CREATE TABLE IF NOT EXISTS boss_shields (
+  shield_layer INTEGER PRIMARY KEY,
+  layer_name TEXT NOT NULL,
+  frequency_hz INTEGER NOT NULL,
+  energy_hp INTEGER NOT NULL,
+  vulnerability_element TEXT NOT NULL,
+  cipher_key_json TEXT NOT NULL,
+  rotation_sequence INTEGER NOT NULL
+);
+
 -- Arcane Spells & Combat Powers
 CREATE TABLE IF NOT EXISTS powers (
   power_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,6 +251,52 @@ INSERT OR IGNORE INTO spell_effects (effect_id, name, element, status_inflicted,
 (1, 'Electrocuted', 'Shock', 'STUNNED', 3.0),
 (2, 'Ignited', 'Fire', 'BURNING', 4.5),
 (3, 'Frozen', 'Frost', 'SLOWED', 4.0);
+
+-- Phase 4: Extended Relational Bank, Telegraph, Medical, Depot, and Syndicate Records
+INSERT OR IGNORE INTO bank_accounts (account_id, citizen_id, account_number, account_name, balance_gold, tier, created_date, is_frozen) VALUES
+(1, 2, 'ACT-1001-VALE', 'Gideon Vale Personal Trust', 84500.0, 'platinum', '1885-04-12', 0),
+(2, 2, 'ACT-1002-TH', 'Town Hall Contingency Fund', 12500.0, 'government', '1887-01-15', 0),
+(3, 5, 'ACT-2005-SPUR', 'Gilded Spur Operating', 3420.0, 'standard', '1888-06-20', 0),
+(4, 4, 'ACT-3004-APOTH', 'Dr. Vance Medical Practice', 1850.0, 'standard', '1889-02-10', 0),
+(5, 7, 'ACT-4007-MINE', 'Redrock Mining Union Payroll', 6200.0, 'commercial', '1890-08-01', 0),
+(6, NULL, 'ACT-9999-SYND', 'Syndicate Reserve Account #9', 142000.0, 'clandestine', '1891-01-05', 0),
+(7, 3, 'ACT-5003-VOSS', 'Voss Ranch Settlement', 450.0, 'standard', '1889-11-12', 1),
+(8, 1, 'ACT-0001-HALE', 'Rowan Hale Escrow', 890.0, 'standard', '1888-03-01', 0);
+
+INSERT OR IGNORE INTO telegraph_dispatches (dispatch_id, sender, recipient, channel, encoded_cipher, decrypted_message, priority, timestamp) VALUES
+(1, 'Gideon Vale', 'Ezekiel Cross', 'PRIVATE_WIRE_4', 'CIPHER-77-MINE', 'Prepare North Ridge shaft. The second ledger was not found in Hale desk. Intercept freight car 402.', 'URGENT', '1891-10-14 21:10'),
+(2, 'Clara Higgins', 'Denver Dispatch', 'COMMERCIAL', 'PLAIN', 'Express train 12 delayed at Redrock canyon junction due to switch failure.', 'ROUTINE', '1891-10-14 22:00'),
+(3, 'Ezekiel Cross', 'Gideon Vale', 'PRIVATE_WIRE_4', 'CIPHER-88-BLAST', 'Car 402 secured at siding. Dynamite crates offloaded to mine bunker. Vance prepared the counterfeit certificate.', 'CRITICAL', '1891-10-15 01:45'),
+(4, 'Dr. Alistair Vance', 'Gideon Vale', 'PRIVATE_WIRE_4', 'CIPHER-12-MED', 'Burial completed in Whispering Pines plot 47 under darkness. Epitaph inscribed as ordered. Let no one dig.', 'CONFIDENTIAL', '1891-10-12 03:30'),
+(5, 'Mara Voss', 'Rowan Hale', 'PONY_RELAY', 'PLAIN', 'Rowan - I hid the bank manifests in the church belltower. Do not trust Vale or his deputies.', 'PERSONAL', '1891-09-30 18:20');
+
+INSERT OR IGNORE INTO medical_examinations (report_id, deceased_name, examiner, cause_of_death, toxicology_notes, date_recorded, is_tampered) VALUES
+(1, 'John Doe #4 (Rowan Hale)', 'Dr. Alistair Vance', 'Apparent fall from North Ridge Canyon', 'Traces of heavy chloral hydrate sedative detected in blood. Blunt trauma post-mortem.', '1891-10-12', 1),
+(2, 'Thomas Higgins', 'Dr. Alistair Vance', 'Pneumonia', 'None detected.', '1891-07-14', 0),
+(3, 'Caleb Stone', 'Dr. Alistair Vance', 'Mine rockslide asphyxiation', 'Carbon monoxide saturation.', '1891-08-22', 0);
+
+INSERT OR IGNORE INTO train_cargo_manifests (manifest_id, train_number, origin, destination, cargo_type, declared_weight_lbs, actual_weight_lbs, contraband_flags, shipment_date) VALUES
+(1, 'TRAIN-EXPRESS-12', 'Omaha Foundry', 'Redrock Depot', 'Agricultural Hardware', 12000, 18500, 'UNREGISTERED_DYNAMITE_WEAPONS', '1891-10-14'),
+(2, 'TRAIN-FREIGHT-402', 'Denver Central', 'North Ridge Siding', 'Timber & Rails', 25000, 34200, 'CONCEALED_GOLD_BULLION_SAFES', '1891-10-15'),
+(3, 'TRAIN-LOCAL-08', 'Query Creek', 'Silver City', 'Cattle & Grain', 15000, 15100, 'NONE', '1891-10-13');
+
+INSERT OR IGNORE INTO cemetery_plots (plot_id, deceased_name, burial_date, grave_status, inscribed_epitaph, depth_feet) VALUES
+(45, 'Eleanor Thorne', '1884-05-10', 'OCCUPIED', 'Resting peacefully in frontier soil.', 6.0),
+(46, 'Silas Thorne Sr.', '1889-11-20', 'OCCUPIED', 'A pioneer of Query Creek.', 6.0),
+(47, 'Rowan Hale', '1891-10-12', 'EMPTY_TOMB', 'A Faithful Lawman Who Departed in Silence.', 2.1),
+(48, 'Unknown Miner', '1890-03-15', 'OCCUPIED', 'Known only to God.', 6.0);
+
+INSERT OR IGNORE INTO syndicate_ledger (ledger_entry_id, alias, real_name, syndicate_role, cut_percentage, payout_total_gold, tier_level) VALUES
+(1, 'The Architect', 'Gideon Vale', 'Syndicate Mastermind', 45.0, 125000.0, 1),
+(2, 'The Enforcer', 'Ezekiel Cross', 'Mine Security & Explosives', 20.0, 42000.0, 2),
+(3, 'The Apothecary', 'Dr. Alistair Vance', 'Poisoner & Medical Forger', 15.0, 28000.0, 2),
+(4, 'The Ear', 'Silas Thorne', 'Saloon Surveillance', 10.0, 18500.0, 3),
+(5, 'The Wire', 'Clara Higgins', 'Telegraph Interceptor', 10.0, 14000.0, 3);
+
+INSERT OR IGNORE INTO boss_shields (shield_layer, layer_name, frequency_hz, energy_hp, vulnerability_element, cipher_key_json, rotation_sequence) VALUES
+(1, 'Aegis of the Ironvault', 440, 200, 'Shock', '{"cipher": "SIGMA_SHOCK", "overload_element": "Shock", "harmonic_code": 440, "bypass_token": "AEGIS_BREAK_1"}', 1),
+(2, 'Infernal Powder Barrier', 587, 250, 'Fire', '{"cipher": "PYRO_FLAME", "overload_element": "Fire", "harmonic_code": 587, "bypass_token": "AEGIS_BREAK_2"}', 2),
+(3, 'Syndicate Arcane Core', 880, 350, 'Arcane', '{"cipher": "ARCANE_PRIME", "overload_element": "Arcane", "harmonic_code": 880, "bypass_token": "AEGIS_BREAK_3"}', 3);
 `;
 
 async function initDatabase(): Promise<string> {

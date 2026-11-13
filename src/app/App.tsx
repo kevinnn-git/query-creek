@@ -11,6 +11,7 @@ import { ClueModal } from '../ui/ClueModal';
 import { DialoguePanel } from '../ui/DialoguePanel';
 import { QuestNotification } from '../ui/QuestNotification';
 import { Corkboard } from '../investigation/Corkboard';
+import { WorldMapModal } from '../ui/WorldMapModal';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,6 +43,21 @@ export const App: React.FC = () => {
       useGameStore.getState().showQuestNotification(
         'CRITICAL ELEMENTAL WEAKNESS EXPLOITED!',
         'Tactical SQL JOIN executed: Shock Arc struck Syndicate Enforcer Vance for 60 damage (WEAKNESS DETECTED: 2x DAMAGE & STUNNED)!'
+      );
+    }
+    if (searchParams.get('worldmap') === '1') {
+      useGameStore.getState().setActiveModal('map');
+    }
+    if (searchParams.get('curriculum')) {
+      const lvl = parseInt(searchParams.get('curriculum') || '0', 10);
+      useGameStore.getState().setCurriculumLevel(lvl);
+      useGameStore.getState().setActiveModal('terminal');
+    }
+    if (searchParams.get('boss') === '1') {
+      useGameStore.getState().setObjective(
+        'Chapter 5: The Final Audit at Sunken Mine',
+        'Shatter Mayor Gideon Vale’s Arcane Aegis shield using decrypted elemental spells.',
+        5
       );
     }
 
@@ -136,14 +152,19 @@ export const App: React.FC = () => {
         e.preventDefault();
         setActiveModal(activeModal === 'terminal' || activeModal === 'corkboard' ? 'none' : 'terminal');
       }
-      // Esc: Close active modal (clue, dialogue, grimoire, corkboard) or open MainMenu
+      // M: Toggle Frontier World Map
+      else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        setActiveModal(activeModal === 'map' ? 'none' : 'map');
+      }
+      // Esc: Close active modal (clue, dialogue, grimoire, corkboard, map) or open MainMenu
       else if (e.key === 'Escape') {
         e.preventDefault();
         if (activeModal === 'clue') {
           setActiveClue(null);
         } else if (activeModal === 'dialogue') {
           setActiveDialogue(null);
-        } else if (activeModal === 'terminal' || activeModal === 'corkboard') {
+        } else if (activeModal === 'terminal' || activeModal === 'corkboard' || activeModal === 'map') {
           setActiveModal('none');
         } else if (activeModal === 'none') {
           setActiveModal('menu');
@@ -174,6 +195,7 @@ export const App: React.FC = () => {
       <QuestNotification />
       <SqlTerminal />
       <Corkboard />
+      <WorldMapModal />
       <MainMenu />
     </div>
   );

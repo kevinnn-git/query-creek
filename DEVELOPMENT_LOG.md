@@ -199,4 +199,73 @@
   - `phase3_deadeye_active.png` (253 KB) — Dead-Eye active with sepia vignette, focus gauge, and SQL Arcane Quick-Cast combat bar.
   - `phase3_spell_cast.png` (288 KB) — Executed tactical SQL JOIN weakness strike with toast notification and damage feedback.
 
+---
+
+### [2026-11-14] — Phase 4: Connected World Expansion and Complete Campaign
+
+#### 1. Database Schema & Seed Data Expansion (`src/db/sqlite.worker.ts`)
+- Added 7 relational tables supporting forensic investigation and advanced SQL:
+  - `bank_accounts`: Citizen accounts, account tiers (platinum, government, standard, clandestine), gold balances, and freeze statuses.
+  - `telegraph_dispatches`: Intercepted Western Union transmissions, priority tags, and encrypted ciphers.
+  - `medical_examinations`: Autopsy examination ledger by Dr. Vance documenting chloral hydrate sedative poisoning and counterfeit certificates.
+  - `train_cargo_manifests`: Freight waybills, declared vs. actual weights, and contraband contraband flags (`UNREGISTERED_DYNAMITE_WEAPONS`, `CONCEALED_GOLD_BULLION_SAFES`).
+  - `cemetery_plots`: Burial plot records, including Plot 47 (Rowan Hale's abnormally shallow empty grave).
+  - `syndicate_ledger`: Master syndicate ledger documenting the criminal hierarchy (*The Architect*, *The Enforcer*, *The Apothecary*, *The Ear*, *The Wire*) and illicit payouts.
+  - `boss_shields`: Mayor Gideon Vale's 3-layer Arcane Aegis shield frequencies, energy HP, and JSON cipher configurations (`json_extract`).
+
+#### 2. Connected World Expansion & 8 Districts (`src/world/Districts.ts`, `src/world/DistrictManager.ts`, `src/engine/SceneManager.ts`)
+- Expanded ground terrain to 180x180 meters with procedural PBR dirt textures and connected boardwalks.
+- Fully implemented and populated all 8 connected frontier districts:
+  1. **Sheriff's Office & Jail** (Town Center: x=-14, z=-4): Rowan Hale's archive desk, holding cells.
+  2. **The Gilded Spur Saloon** (x=14, z=2): Silas Thorne's bar counter, patron register table.
+  3. **Ironvault Bank** (x=-14, z=14): Subterranean vault, Mayor Gideon Vale boardwalk post.
+  4. **Western Union Telegraph Office** (x=16, z=-16): Building, lantern, and inspectable telegraph terminal clue (`poi_wire_terminal`).
+  5. **Dr. Vance's Apothecary** (x=-18, z=-20): Dispensary building, tonic bottles, and autopsy ledger clue (`poi_autopsy_log`).
+  6. **Redrock Train Depot** (x=28, z=24): Railroad siding, shipping crates, and freight waybill manifest clue (`poi_cargo_manifest`).
+  7. **Whispering Pines Cemetery** (x=-30, z=28): Ancient pine grove, perimeter fencing, and Plot 47 empty grave clue (`poi_plot_47`).
+  8. **North Ridge Abandoned Mine** (x=36, z=-34): Redrock canyon boulders, gold ore veins, mine carts, and Mayor Gideon Vale's fortress.
+- Implemented `DistrictManager`:
+  - Tracks player coordinates in real time.
+  - Progressively unlocks districts by chapter progression.
+  - Warns players when attempting to enter sealed territories.
+
+#### 3. Interactive Frontier World Map (`src/ui/WorldMapModal.tsx`)
+- Vintage 1891 frontier cartography modal accessible via `M` hotkey or HUD `[Map]` button.
+- Displays all 8 districts with spatial pin locations, lock/unlock status badges, chapter requirements, and coordinate trackers.
+- Interactive territory intel dossier displaying lore, POIs, and `[Set Objective Waypoint]` action button.
+
+#### 4. Advanced SQL Curriculum Expansion (Levels 4 through 9) (`src/sql/CurriculumManager.ts`, `src/sql/ChallengeValidator.ts`)
+- Implemented curriculum levels 4 to 9:
+  - **Level 4 — Relational Auditing:** `INNER JOIN` and `LEFT JOIN` on `bank_accounts` and `citizens`.
+  - **Level 5 — Forensic Aggregation:** `COUNT`, `SUM`, `AVG`, `GROUP BY`, `HAVING` (> 2,000 gold).
+  - **Level 6 — The Shell Corporation Veil:** Subqueries with `NOT IN` and `CASE WHEN` laundering severity classification.
+  - **Level 7 — Depot Manifest Reconciliations:** Correlated subqueries using `EXISTS` and weight discrepancies (`actual_weight_lbs > declared_weight_lbs`).
+  - **Level 8 — Sequential Audit Reconstruction:** Common Table Expressions (`WITH`) and Window Functions (`ROW_NUMBER() OVER (ORDER BY timestamp ASC)`).
+  - **Level 9 — The Arcane Vault Cipher:** JSON extraction (`json_extract(cipher_key_json, '$.overload_element')`) to decode Mayor Gideon Vale's shield vulnerabilities.
+- Added comprehensive semantic validators in `ChallengeValidator.ts` assessing result rows and query concepts.
+
+#### 5. Mayor Gideon Vale Final Boss Confrontation (`src/combat/BossManager.ts`)
+- Spawns Mayor Gideon Vale at the North Ridge Abandoned Mine with custom 3D overhead dynamic health and shield billboard.
+- Multi-layer **Arcane Aegis** shield with shimmering hexagonal forcefield:
+  - Layer 1 (440 Hz): Weak to **Shock** (`Frontier Thunderstrike`).
+  - Layer 2 (587 Hz): Weak to **Fire** (`Hellfire Powder Keg`).
+  - Layer 3 (880 Hz): Weak to **Arcane** (`Deadeye Volley`).
+- Elemental overloads shatter shield layers with explosive visual feedback.
+- Defeating Mayor Vale drops the Master Ledger, resolves Rowan Hale's survival in hiding at the Old Belfry, and completes the central campaign narrative!
+
+#### 6. Verification & Automated Testing
+- Automated unit test suite passed: **37/37 tests passing (100%)** across 5 suites:
+  - `districts.test.js` (3 tests): Geographic bounds, chapter unlocking, player position detection.
+  - `advanced_curriculum.test.js` (6 tests): Levels 4-9 semantic validation.
+  - `combat.test.js` (8 tests): AI states, weaknesses, time dilation, tactical JOIN spells.
+  - `investigation.test.js` (4 tests): Contradiction evaluation, alibi breaking, corkboard links.
+  - `curriculum.test.js` (5 tests): Core Levels 0-3 validation.
+  - `sqlite.test.js` (3 tests): Phase 0-4 database schema integrity and JSON functions.
+- Production build passed: `tsc -b && vite build` built in 45.69s with 0 errors.
+- High-fidelity visual verification screenshots captured:
+  - `phase4_world_map.png` (153 KB) — Frontier World Map with 8 districts, status badges, and district dossier.
+  - `phase4_advanced_sql.png` (89 KB) — Arcane SQL Grimoire with Level 8 CTE and Window Function challenge.
+  - `phase4_boss_encounter.png` (248 KB) — Chapter 5 final boss objective with Dead-Eye targeting reticle.
+
+
 

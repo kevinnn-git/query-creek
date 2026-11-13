@@ -18,6 +18,8 @@ import { InteractableManager } from '../world/InteractableManager';
 import { EnemyManager } from '../combat/EnemyManager';
 import { DeadEyeManager } from '../combat/DeadEyeManager';
 import { SpellManager } from '../combat/SpellManager';
+import { BossManager } from '../combat/BossManager';
+import { DistrictManager } from '../world/DistrictManager';
 import { useGameStore } from '../store/useGameStore';
 
 export interface SceneDiagnostics {
@@ -98,8 +100,9 @@ export class SceneManager {
     // 4. Build Environment Terrain / Frontier Dirt Ground & Boardwalk
     this.createGround();
 
-    // 5. Populate Frontier District Buildings & Props
-    await this.populateInitialFrontierDistrict();
+    // 5. Populate All 8 Frontier Districts & Boss Encounter
+    await this.populateAllDistricts();
+    await BossManager.getInstance().initializeBoss(this.scene);
 
     // 6. Load Animated Character
     await this.player.loadCharacter(shadowGen);
@@ -107,12 +110,12 @@ export class SceneManager {
     // 7. Setup Cinematic Post-Processing Pipeline
     this.pipeline.setupPipeline(this.scene, this.camera, 'medium');
 
-    console.log('[SceneManager] Scene & Player initialized successfully.');
+    console.log('[SceneManager] Scene, Districts & Player initialized successfully.');
   }
 
   private createGround() {
-    // 90x90 meter frontier town dirt ground
-    const ground = MeshBuilder.CreateGround('frontierGround', { width: 90, height: 90, subdivisions: 8 }, this.scene);
+    // 180x180 meter connected open-world frontier ground
+    const ground = MeshBuilder.CreateGround('frontierGround', { width: 180, height: 180, subdivisions: 16 }, this.scene);
     ground.receiveShadows = true;
 
     // PBR Frontier Dirt Material
@@ -147,11 +150,13 @@ export class SceneManager {
     } catch (e) {}
   }
 
-  private async populateInitialFrontierDistrict() {
+  private async populateAllDistricts() {
     const shadowGen = this.lighting.getShadowGenerator();
 
     try {
-      // 1. Sheriff Office Building & Jail
+      // ==========================================
+      // DISTRICT 1: SHERIFF'S OFFICE & JAIL (Town Center)
+      // ==========================================
       await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_office_building');
       const sheriffOffice = this.assetRegistry.instantiate('sheriff_office_building', 'sheriffOffice');
       const officeRoot = sheriffOffice.rootNodes[0];
@@ -165,7 +170,7 @@ export class SceneManager {
       }
       this.lighting.createLanternLight('officeLantern', new Vector3(-10, 3.2, -4), this.scene);
 
-      // 2. Sheriff Office Interior Props (Ledger Desk, Chair, Archive Shelf, Jail Door)
+      // Sheriff Office Interior Props (Ledger Desk, Chair, Archive Shelf, Jail Door)
       await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_desk');
       const desk = this.assetRegistry.instantiate('sheriff_desk', 'sheriffDesk');
       if (desk.rootNodes[0]) {
@@ -196,7 +201,9 @@ export class SceneManager {
         jailDoor.rootNodes[0].scaling = new Vector3(1.2, 1.2, 1.2);
       }
 
-      // 3. The Gilded Spur Saloon Building
+      // ==========================================
+      // DISTRICT 2: THE GILDED SPUR SALOON
+      // ==========================================
       await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_building');
       const saloon = this.assetRegistry.instantiate('saloon_building', 'saloon');
       const saloonRoot = saloon.rootNodes[0];
@@ -210,7 +217,9 @@ export class SceneManager {
       }
       this.lighting.createLanternLight('saloonLantern', new Vector3(9, 3.5, 2), this.scene);
 
-      // 4. Ironvault Bank Building
+      // ==========================================
+      // DISTRICT 3: IRONVAULT BANK
+      // ==========================================
       await this.assetRegistry.loadGlbContainer(this.scene, 'bank_building');
       const bank = this.assetRegistry.instantiate('bank_building', 'bank');
       if (bank.rootNodes[0]) {
@@ -219,7 +228,7 @@ export class SceneManager {
         bank.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
       }
 
-      // 5. Mayor Gideon Vale NPC (standing outside on the boardwalk)
+      // Mayor Gideon Vale NPC (Town Hall / Bank Boardwalk)
       await this.assetRegistry.loadGlbContainer(this.scene, 'mayor_gideon');
       const mayor = this.assetRegistry.instantiate('mayor_gideon', 'mayor');
       if (mayor.rootNodes[0]) {
@@ -231,7 +240,210 @@ export class SceneManager {
         }
       }
 
-      // 6. Wagon Cart & Town Street Props
+      // ==========================================
+      // DISTRICT 4: WESTERN UNION TELEGRAPH OFFICE (x=16, z=-16)
+      // ==========================================
+      const telegraph = this.assetRegistry.instantiate('bank_building', 'telegraphOffice');
+      if (telegraph.rootNodes[0]) {
+        telegraph.rootNodes[0].position = new Vector3(16, 0, -16);
+        telegraph.rootNodes[0].scaling = new Vector3(1.6, 1.6, 1.6);
+        telegraph.rootNodes[0].rotation = new Vector3(0, -Math.PI / 2, 0);
+      }
+      this.lighting.createLanternLight('telegraphLantern', new Vector3(14, 3.0, -14), this.scene);
+
+      // Register Telegraph POI Clue
+      this.interactableManager.addInteractable({
+        id: 'poi_wire_terminal',
+        name: 'Encrypted Telegraph Terminal',
+        type: 'clue',
+        position: new Vector3(16, 0.5, -16),
+        prompt: 'Press [E] to Intercept Western Union Telegraph Dispatches',
+        interactionRadius: 4.0,
+        payload: {
+          id: 'doc_telegraph',
+          title: 'Intercepted Western Union Dispatch #77',
+          type: 'document',
+          dateDiscovered: '1891-10-15',
+          source: 'Telegraph Office Terminal',
+          snippet: 'Encrypted transmission from Gideon Vale to Ezekiel Cross: "Prepare North Ridge shaft. Intercept freight car 402."',
+          fullContent: `WESTERN UNION TELEGRAPH CO. - TERRITORIAL DISPATCH
+FROM: G. Vale (Query Creek)
+TO: E. Cross (North Ridge Mine)
+PRIORITY: URGENT / PRIVATE WIRE 4
+
+"Prepare North Ridge shaft. The second ledger was not found in Hale desk. Intercept freight car 402 at siding. Vance prepared the counterfeit certificate. Let no one inspect the train manifest."`
+        }
+      });
+
+      // ==========================================
+      // DISTRICT 5: DR. VANCE'S APOTHECARY (x=-18, z=-20)
+      // ==========================================
+      const apothecary = this.assetRegistry.instantiate('sheriff_office_building', 'apothecaryBuilding');
+      if (apothecary.rootNodes[0]) {
+        apothecary.rootNodes[0].position = new Vector3(-18, 0, -20);
+        apothecary.rootNodes[0].scaling = new Vector3(1.7, 1.7, 1.7);
+        apothecary.rootNodes[0].rotation = new Vector3(0, Math.PI / 3, 0);
+      }
+      this.lighting.createLanternLight('apothecaryLantern', new Vector3(-16, 3.0, -18), this.scene);
+
+      // Register Apothecary POI Clue
+      this.interactableManager.addInteractable({
+        id: 'poi_autopsy_log',
+        name: "Dr. Vance's Medical Autopsy Ledger",
+        type: 'clue',
+        position: new Vector3(-18, 0.5, -20),
+        prompt: 'Press [E] to Inspect Suspicious Autopsy Records',
+        interactionRadius: 4.0,
+        payload: {
+          id: 'doc_autopsy',
+          title: 'Autopsy Report #4 (Rowan Hale Case)',
+          type: 'document',
+          dateDiscovered: '1891-10-12',
+          source: "Dr. Vance's Apothecary",
+          snippet: 'Autopsy notes reveal lethal chloral hydrate sedative in blood prior to alleged fall. Death certificate was forged!',
+          fullContent: `TERRITORIAL CORONER EXAMINATION
+RECORD: John Doe #4 (Identified as Sheriff Rowan Hale)
+EXAMINER: Dr. Alistair Vance
+CAUSE OF DEATH: Apparent fall from canyon
+
+FORENSIC TOXICOLOGY:
+Lethal concentrations of chloral hydrate sedative detected in bloodstream. Blunt force trauma sustained post-mortem.
+[CONFIDENTIAL FORGERY NOTE]: Signed under duress from Mayor Vale to cover mine extraction.`
+        }
+      });
+
+      // ==========================================
+      // DISTRICT 6: REDROCK TRAIN DEPOT (x=28, z=24)
+      // ==========================================
+      const depot = this.assetRegistry.instantiate('saloon_building', 'trainDepot');
+      if (depot.rootNodes[0]) {
+        depot.rootNodes[0].position = new Vector3(28, 0, 24);
+        depot.rootNodes[0].scaling = new Vector3(1.8, 1.8, 1.8);
+        depot.rootNodes[0].rotation = new Vector3(0, -Math.PI / 3, 0);
+      }
+      this.lighting.createLanternLight('depotLantern', new Vector3(26, 3.2, 22), this.scene);
+
+      // Register Train Depot Manifest POI Clue
+      this.interactableManager.addInteractable({
+        id: 'poi_cargo_manifest',
+        name: 'Redrock Freight Siding Manifest',
+        type: 'clue',
+        position: new Vector3(28, 0.5, 24),
+        prompt: 'Press [E] to Inspect Freight Car 402 Manifest',
+        interactionRadius: 4.0,
+        payload: {
+          id: 'doc_train_manifest',
+          title: 'Redrock Railway Waybill — Car 402',
+          type: 'document',
+          dateDiscovered: '1891-10-15',
+          source: 'Redrock Train Depot',
+          snippet: 'Car 402 weighed 34,200 lbs despite declaring 25,000 lbs of timber. 9,200 lbs of concealed gold bullion!',
+          fullContent: `REDROCK RAILROAD FREIGHT SIDING
+WAYBILL: TRAIN-FREIGHT-402
+ORIGIN: Denver Central -> DESTINATION: North Ridge Siding
+DECLARED CARGO: Timber & Rails (25,000 lbs)
+ACTUAL SCALE WEIGHT: 34,200 lbs
+
+INSPECTION FLAG: CONCEALED_GOLD_BULLION_SAFES & DYNAMITE
+Authorized by: G. Vale & E. Cross`
+        }
+      });
+
+      // ==========================================
+      // DISTRICT 7: WHISPERING PINES CEMETERY (x=-30, z=28)
+      // ==========================================
+      // Cemetery Pine Grove Trees
+      await this.assetRegistry.loadGlbContainer(this.scene, 'pine_tree');
+      const pineCoords = [
+        [-30, 28], [-34, 30], [-26, 26], [-32, 24], [-28, 32]
+      ];
+      pineCoords.forEach(([px, pz], idx) => {
+        const tree = this.assetRegistry.instantiate('pine_tree', `cemetery_pine_${idx}`);
+        if (tree.rootNodes[0]) {
+          tree.rootNodes[0].position = new Vector3(px, 0, pz);
+          tree.rootNodes[0].scaling = new Vector3(2.4, 2.7, 2.4);
+        }
+      });
+
+      // Register Cemetery Empty Grave Clue
+      this.interactableManager.addInteractable({
+        id: 'poi_plot_47',
+        name: 'Plot 47: Disinterred Grave (Rowan Hale)',
+        type: 'clue',
+        position: new Vector3(-30, 0.5, 28),
+        prompt: "Press [E] to Inspect Rowan Hale's Tombstone",
+        interactionRadius: 4.0,
+        payload: {
+          id: 'doc_cemetery_tomb',
+          title: 'Whispering Pines Cemetery Register — Plot 47',
+          type: 'document',
+          dateDiscovered: '1891-10-12',
+          source: 'Whispering Pines Cemetery',
+          snippet: 'Plot 47 is an EMPTY TOMB! The coffin contains only stones and iron weights. Rowan Hale is alive!',
+          fullContent: `WHISPERING PINES CEMETERY RECORD
+PLOT: 47 (Northwest Hillside)
+INSCRIPTION: "Rowan Hale — A Faithful Lawman Who Departed in Silence"
+GRAVE DEPTH: 2.1 feet (Abnormally shallow)
+STATUS: EMPTY_TOMB
+
+EXHUMATION FINDING:
+The pine coffin was disinterred under moonlight. No body was found—only iron scrap weights and river stones. Sheriff Rowan Hale was never buried here; he was captured and relocated to the North Ridge Mine!`
+        }
+      });
+
+      // ==========================================
+      // DISTRICT 8: NORTH RIDGE ABANDONED MINE (x=36, z=-34)
+      // ==========================================
+      await this.assetRegistry.loadGlbContainer(this.scene, 'canyon_rock_01');
+      const mineRocks = [
+        [36, -34], [40, -32], [32, -36], [42, -38]
+      ];
+      mineRocks.forEach(([rx, rz], idx) => {
+        const rock = this.assetRegistry.instantiate('canyon_rock_01', `mine_rock_${idx}`);
+        if (rock.rootNodes[0]) {
+          rock.rootNodes[0].position = new Vector3(rx, 0, rz);
+          rock.rootNodes[0].scaling = new Vector3(3.2, 3.8, 3.2);
+        }
+      });
+
+      await this.assetRegistry.loadGlbContainer(this.scene, 'gold_nugget');
+      const goldOre = this.assetRegistry.instantiate('gold_nugget', 'mine_gold_ore');
+      if (goldOre.rootNodes[0]) {
+        goldOre.rootNodes[0].position = new Vector3(37, 0.2, -35);
+        goldOre.rootNodes[0].scaling = new Vector3(1.8, 1.8, 1.8);
+      }
+
+      // Register Recovered Master Ledger POI
+      this.interactableManager.addInteractable({
+        id: 'poi_master_ledger',
+        name: 'The Recovered Master Syndicate Ledger',
+        type: 'clue',
+        position: new Vector3(38, 0.5, -36),
+        prompt: 'Press [E] to Inspect the Recovered Master Ledger',
+        interactionRadius: 4.5,
+        payload: {
+          id: 'doc_master_ledger',
+          title: 'The Master Syndicate Ledger of Query Creek',
+          type: 'document',
+          dateDiscovered: '1891-10-16',
+          source: 'North Ridge Mine Vault',
+          snippet: 'The complete financial conspiracy documenting Mayor Vale as "The Architect", banking theft, and railroad payoffs.',
+          fullContent: `THE MASTER LEDGER OF QUERY CREEK — 1891
+RECOVERED BY THE ARCANE SHERIFF
+
+SYNDICATE HIERARCHY:
+1. "The Architect" — Gideon Vale (45% Cut, 125,000 Gold)
+2. "The Enforcer" — Ezekiel Cross (20% Cut, 42,000 Gold)
+3. "The Apothecary" — Dr. Alistair Vance (15% Cut, 28,000 Gold)
+4. "The Ear" — Silas Thorne (10% Cut, 18,500 Gold)
+5. "The Wire" — Clara Higgins (10% Cut, 14,000 Gold)
+
+CONSPIRACY AUDIT CONFIRMED:
+The bank robbery was staged, the murder reports were forged, and the entire frontier territory was under syndicate seizure. With this ledger, the law is restored to Query Creek.`
+        }
+      });
+
+      // Town props (cart, barrel, crate, bench)
       await this.assetRegistry.loadGlbContainer(this.scene, 'wooden_cart');
       const cart = this.assetRegistry.instantiate('wooden_cart', 'cart');
       if (cart.rootNodes[0]) {
@@ -262,25 +474,9 @@ export class SceneManager {
         bench.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
       }
 
-      // 7. Pine Trees along the canyon line
-      await this.assetRegistry.loadGlbContainer(this.scene, 'pine_tree');
-      const tree1 = this.assetRegistry.instantiate('pine_tree', 'pine_1');
-      if (tree1.rootNodes[0]) {
-        tree1.rootNodes[0].position = new Vector3(-24, 0, 16);
-        tree1.rootNodes[0].scaling = new Vector3(2.5, 2.8, 2.5);
-      }
-
-      // 8. Canyon Boulders
-      await this.assetRegistry.loadGlbContainer(this.scene, 'canyon_rock_01');
-      const rock1 = this.assetRegistry.instantiate('canyon_rock_01', 'rock_1');
-      if (rock1.rootNodes[0]) {
-        rock1.rootNodes[0].position = new Vector3(25, 0, -18);
-        rock1.rootNodes[0].scaling = new Vector3(3.0, 3.5, 3.0);
-      }
-
-      console.log('[SceneManager] Phase 1 frontier district populated with buildings, props, and NPCs.');
+      console.log('[SceneManager] All 8 frontier districts populated with buildings, props, POIs, and boss encounter.');
     } catch (err) {
-      console.error('[SceneManager] Error populating district:', err);
+      console.error('[SceneManager] Error populating districts:', err);
     }
   }
 
@@ -360,6 +556,12 @@ export class SceneManager {
           this.playerInput.sheriffSense = false;
           this.interactableManager.triggerSheriffSense(5.0);
         }
+
+        // 8. Update Boss Simulation & Aegis Shield Pulse
+        BossManager.getInstance().update(deltaTime, deState.timeScale);
+
+        // 9. Update Player District Position & Boundary Warnings
+        DistrictManager.getInstance().updatePlayerPosition(this.player.getPosition(), store.chapterNumber);
       }
 
       this.scene.render();

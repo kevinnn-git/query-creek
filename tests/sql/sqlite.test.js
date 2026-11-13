@@ -121,6 +121,57 @@ test('SQLite WASM Database Integration & Schema Integrity', async (t) => {
     assert.strictEqual(nullNotesCount, 1, 'Should find 1 transaction with NULL notes');
   });
 
+  await t.test('verifies Phase 4 accounts, manifests, CTEs, and boss shield JSON', () => {
+    db.exec(`
+      CREATE TABLE bank_accounts (
+        account_id INTEGER PRIMARY KEY,
+        citizen_id INTEGER,
+        account_name TEXT NOT NULL,
+        balance_gold REAL NOT NULL
+      );
+
+      CREATE TABLE train_cargo_manifests (
+        manifest_id INTEGER PRIMARY KEY,
+        train_number TEXT NOT NULL,
+        declared_weight_lbs INTEGER,
+        actual_weight_lbs INTEGER,
+        contraband_flags TEXT
+      );
+
+      CREATE TABLE boss_shields (
+        shield_layer INTEGER PRIMARY KEY,
+        layer_name TEXT NOT NULL,
+        vulnerability_element TEXT NOT NULL,
+        cipher_key_json TEXT NOT NULL
+      );
+
+      INSERT INTO bank_accounts VALUES (1, 2, 'Gideon Vale Trust', 84500.0);
+      INSERT INTO train_cargo_manifests VALUES (1, 'TRAIN-402', 25000, 34200, 'CONCEALED_GOLD_BULLION');
+      INSERT INTO boss_shields VALUES (1, 'Aegis of the Ironvault', 'Shock', '{"overload_element": "Shock", "harmonic_code": 440}');
+    `);
+
+    // Verify CTE execution
+    const cteResult = db.selectValue(`
+      WITH high_balance AS (
+        SELECT balance_gold FROM bank_accounts WHERE balance_gold > 50000
+      )
+      SELECT count(*) FROM high_balance;
+    `);
+    assert.strictEqual(cteResult, 1, 'CTE should evaluate 1 account with >50k gold');
+
+    // Verify JSON extraction
+    const jsonWeakness = db.selectValue(`
+      SELECT json_extract(cipher_key_json, '$.overload_element') FROM boss_shields WHERE shield_layer = 1;
+    `);
+    assert.strictEqual(jsonWeakness, 'Shock', 'json_extract should identify Shock weakness');
+
+    // Verify freight weight discrepancy
+    const discrepancy = db.selectValue(`
+      SELECT (actual_weight_lbs - declared_weight_lbs) FROM train_cargo_manifests WHERE train_number = 'TRAIN-402';
+    `);
+    assert.strictEqual(discrepancy, 9200, 'Weight discrepancy should equal 9200 lbs');
+  });
+
   db.close();
 });
 

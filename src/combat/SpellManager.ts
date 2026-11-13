@@ -2,6 +2,7 @@ import { dbClient } from '../db/DbClient';
 import { ElementType, SpellData } from './types';
 import { EnemyManager } from './EnemyManager';
 import { DeadEyeManager } from './DeadEyeManager';
+import { BossManager } from './BossManager';
 
 export interface CastResult {
   success: boolean;
@@ -111,8 +112,15 @@ export class SpellManager {
         }
       }
 
+      // Also strike Mayor Gideon Vale if within range or boss encounter active
+      const bossHit = BossManager.getInstance().strikeShield(element, baseDamage);
+
       // Deactivate Dead-Eye for cinematic slow-motion payoff
       DeadEyeManager.getInstance().deactivate();
+
+      const combinedMsg = bossHit.hit
+        ? `CAST SUCCESSFUL: ${spellName}! ${bossHit.message}`
+        : `CAST SUCCESSFUL: ${spellName}! Dealt damage to ${targetsHit.length} target(s).`;
 
       return {
         success: true,
@@ -120,7 +128,7 @@ export class SpellManager {
         element,
         damage: baseDamage,
         targetsHit,
-        message: `CAST SUCCESSFUL: ${spellName}! Dealt damage to ${targetsHit.length} target(s).`,
+        message: combinedMsg,
       };
     } catch (err: any) {
       return {
@@ -134,3 +142,4 @@ export class SpellManager {
     }
   }
 }
+

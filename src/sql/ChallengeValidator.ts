@@ -116,6 +116,113 @@ export class ChallengeValidator {
       };
     }
 
+    if (challenge.id === 'level_4_relational_accounts') {
+      const hasJoin = cleanQuery.includes('join');
+      const hasCitizens = cleanQuery.includes('citizens');
+
+      if (!hasJoin || !hasCitizens) {
+        return {
+          passed: false,
+          message: 'Query does not join bank_accounts with citizens table.',
+          feedback: 'Use JOIN citizens c ON bank_accounts.citizen_id = c.citizen_id to link accounts to citizen identities.'
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_5_forensic_aggregation') {
+      const hasGroup = cleanQuery.includes('group by');
+      const hasSum = cleanQuery.includes('sum(') || cleanQuery.includes('sum (');
+
+      if (!hasGroup || !hasSum) {
+        return {
+          passed: false,
+          message: 'Query does not aggregate by authorized authority.',
+          feedback: 'Use SUM(amount_gold) and GROUP BY authorized_by with HAVING SUM(amount_gold) > 2000.'
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_6_subquery_veil') {
+      const hasCase = cleanQuery.includes('case');
+      const hasSubquery = cleanQuery.includes('select') && (cleanQuery.includes('not in') || cleanQuery.includes('in ('));
+
+      if (!hasCase && !hasSubquery) {
+        return {
+          passed: false,
+          message: 'Query does not utilize subqueries or CASE WHEN classification.',
+          feedback: 'Use a subquery with NOT IN (SELECT account_name FROM bank_accounts WHERE citizen_id IS NOT NULL) and CASE WHEN.'
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_7_manifest_reconciliation') {
+      const hasDiscrepancy = cleanQuery.includes('>') || cleanQuery.includes('actual_weight_lbs');
+      const hasExists = cleanQuery.includes('exists');
+
+      if (!hasDiscrepancy || !hasExists) {
+        return {
+          passed: false,
+          message: 'Query does not check weight discrepancy with correlated EXISTS subquery.',
+          feedback: 'Filter where actual_weight_lbs > declared_weight_lbs and use EXISTS (SELECT 1 FROM telegraph_dispatches ...).'
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_8_cte_window_audit') {
+      const hasWith = cleanQuery.includes('with ');
+      const hasOver = cleanQuery.includes('over ') || cleanQuery.includes('over(');
+
+      if (!hasWith || !hasOver) {
+        return {
+          passed: false,
+          message: 'Query does not use Common Table Expressions (WITH) or Window Functions (OVER).',
+          feedback: 'Construct a CTE using WITH timeline AS (...) and ROW_NUMBER() OVER (ORDER BY timestamp ASC).'
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_9_json_boss_cipher') {
+      const hasJsonExtract = cleanQuery.includes('json_extract') || cleanQuery.includes('json');
+
+      if (!hasJsonExtract) {
+        return {
+          passed: false,
+          message: 'Query does not utilize json_extract() to parse boss shield data.',
+          feedback: "Use json_extract(cipher_key_json, '$.overload_element') to retrieve Mayor Vale's shield weakness."
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
     // Generic fallback validation
     return {
       passed: true,

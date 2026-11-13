@@ -33,9 +33,9 @@ export interface GameStore {
   addQueryHistory: (query: string) => void;
 
   // UI State
-  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue';
+  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map';
   investigationTab: 'grimoire' | 'corkboard' | 'dossier';
-  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue') => void;
+  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map') => void;
   setInvestigationTab: (tab: 'grimoire' | 'corkboard' | 'dossier') => void;
 
   // Investigation & Corkboard Subsystem
@@ -78,10 +78,24 @@ export interface GameStore {
 
   // Story & Curriculum
   currentChapter: string;
+  chapterNumber: number;
   currentObjective: string;
   curriculumLevel: number;
-  setObjective: (chapter: string, objective: string) => void;
+  unlockedDistricts: string[];
+  setObjective: (chapter: string, objective: string, chapterNumber?: number) => void;
   setCurriculumLevel: (level: number) => void;
+  unlockDistrict: (districtId: string) => void;
+
+  // Boss Confrontation (Mayor Gideon Vale at Abandoned Mine)
+  bossHp: number;
+  bossMaxHp: number;
+  bossShieldActive: boolean;
+  bossShieldLayers: number;
+  currentShieldWeakness: string;
+  bossDefeated: boolean;
+  damageBossShield: (amount: number, element: string) => boolean;
+  damageBossHp: (amount: number) => void;
+  setBossDefeated: (defeated: boolean) => void;
 }
 
 const getSavedInvestigation = () => {
@@ -334,8 +348,57 @@ export const useGameStore = create<GameStore>((set) => ({
 
   // Story
   currentChapter: 'Chapter 1: The Disappearance of Rowan Hale',
+  chapterNumber: 1,
   currentObjective: "Find Sheriff Rowan Hale's discarded master ledger inside the Sheriff's Office (Press [E] to inspect).",
   curriculumLevel: 0,
-  setObjective: (currentChapter, currentObjective) => set({ currentChapter, currentObjective }),
+  unlockedDistricts: ['sheriff_office', 'saloon', 'bank'],
+  setObjective: (currentChapter, currentObjective, chapterNumber) =>
+    set((state) => ({
+      currentChapter,
+      currentObjective,
+      chapterNumber: chapterNumber !== undefined ? chapterNumber : state.chapterNumber,
+    })),
   setCurriculumLevel: (curriculumLevel) => set({ curriculumLevel }),
+  unlockDistrict: (districtId) =>
+    set((state) => {
+      if (state.unlockedDistricts.includes(districtId)) return state;
+      return { unlockedDistricts: [...state.unlockedDistricts, districtId] };
+    }),
+
+  // Boss Confrontation (Mayor Gideon Vale at Abandoned Mine)
+  bossHp: 400,
+  bossMaxHp: 400,
+  bossShieldActive: true,
+  bossShieldLayers: 3,
+  currentShieldWeakness: 'Shock',
+  bossDefeated: false,
+  damageBossShield: (amount, element) => {
+    let shieldBroke = false;
+    set((state) => {
+      if (!state.bossShieldActive) return state;
+      const isWeakness = element.toLowerCase() === state.currentShieldWeakness.toLowerCase();
+      const effectiveDmg = isWeakness ? amount * 2.5 : amount * 0.4;
+      const newLayers = isWeakness ? state.bossShieldLayers - 1 : state.bossShieldLayers;
+      const nextWeakness =
+        newLayers === 2 ? 'Fire' : newLayers === 1 ? 'Arcane' : 'None';
+      const shieldDown = newLayers <= 0;
+      shieldBroke = isWeakness;
+
+      return {
+        bossShieldLayers: Math.max(0, newLayers),
+        currentShieldWeakness: nextWeakness,
+        bossShieldActive: !shieldDown,
+      };
+    });
+    return shieldBroke;
+  },
+  damageBossHp: (amount) =>
+    set((state) => {
+      const newHp = Math.max(0, state.bossHp - amount);
+      return {
+        bossHp: newHp,
+        bossDefeated: newHp === 0,
+      };
+    }),
+  setBossDefeated: (bossDefeated) => set({ bossDefeated }),
 }));
