@@ -23,9 +23,9 @@ export class CinematicPipelineManager {
       this.pipeline.imageProcessing.contrast = 1.15;
       this.pipeline.imageProcessing.exposure = 1.15;
 
-      // Anti-aliasing
+      // Anti-aliasing via multisampling
       this.pipeline.samples = 2;
-      this.pipeline.fxaaEnabled = true;
+      this.pipeline.fxaaEnabled = false;
     } else if (qualityPreset === 'medium') {
       // Balanced for GTX 1650 Max-Q
       this.pipeline.imageProcessing.vignetteEnabled = true;
@@ -34,7 +34,7 @@ export class CinematicPipelineManager {
 
       this.pipeline.imageProcessing.contrast = 1.10;
       this.pipeline.imageProcessing.exposure = 1.12;
-      this.pipeline.fxaaEnabled = true;
+      this.pipeline.fxaaEnabled = false;
     } else {
       // Low preset: minimal post processing for maximum frame rate
       this.pipeline.imageProcessing.vignetteEnabled = true;

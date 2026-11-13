@@ -58,6 +58,11 @@ export class SceneManager {
     // Warm golden-hour frontier horizon sky
     this.scene.clearColor = new Color4(0.72, 0.58, 0.44, 1.0);
 
+    // Enforce WebGPU hardware uniform buffer compliance (strictly stay <= 12 per vertex stage)
+    this.scene.onNewMaterialAddedObservable.add((m) => {
+      (m as any).maxSimultaneousLights = 2;
+    });
+
     const canvas = this.engine.getRenderingCanvas()!;
     this.playerInput = new PlayerInput(canvas);
 
@@ -119,6 +124,13 @@ export class SceneManager {
 
     // 9. Start Procedural Ambient Sound
     AudioManager.getInstance().startAmbience();
+
+    // Critical for WebGPU: Babylon glTFLoader automatically sets maxSimultaneousLights = scene.lights.length (9),
+    // which generates 13 uniform buffers and exceeds WebGPU's strict hardware limit of 12.
+    // Clamp all materials back to 2 simultaneous lights.
+    this.scene.materials.forEach((m) => {
+      (m as any).maxSimultaneousLights = 2;
+    });
 
     console.log('[SceneManager] Scene, Districts & Player initialized successfully.');
   }

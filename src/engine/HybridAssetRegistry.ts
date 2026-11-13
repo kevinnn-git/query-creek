@@ -90,7 +90,7 @@ export class HybridAssetRegistry {
       console.log(`[HybridAssetRegistry] Loading GLB container: ${assetId} (${entry.localPath})`);
       const container = await SceneLoader.LoadAssetContainerAsync('', entry.localPath, scene);
       container.materials.forEach((m) => {
-        (m as any).maxSimultaneousLights = 4;
+        (m as any).maxSimultaneousLights = 2;
       });
       this.containers.set(assetId, container);
       this.loadingPromises.delete(assetId);
@@ -146,7 +146,7 @@ export class HybridAssetRegistry {
     }
 
     const pbr = new PBRMaterial(matName, scene);
-    pbr.maxSimultaneousLights = 4; // Crucial for WebGPU limit (max 12 uniform buffers per shader stage)
+    pbr.maxSimultaneousLights = 2; // WebGPU compliance: max 12 uniform buffers per shader stage
     pbr.metallic = config.metallic ?? 0.0;
     pbr.roughness = config.roughness ?? 0.8;
 

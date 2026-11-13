@@ -76,7 +76,7 @@ export class Player {
     // Enhance character materials for cinematic PBR western look & WebGPU compliance
     result.meshes.forEach((m) => {
       if (m.material) {
-        (m.material as any).maxSimultaneousLights = 4;
+        (m.material as any).maxSimultaneousLights = 2;
         if (m.material instanceof PBRMaterial) {
           m.material.roughness = Math.max(0.68, m.material.roughness || 0.75);
           m.material.metallic = Math.min(0.2, m.material.metallic || 0.05);
@@ -149,6 +149,7 @@ export class Player {
     hatMat.albedoColor = new Color3(0.18, 0.12, 0.06);
     hatMat.roughness = 0.82;
     hatMat.metallic = 0.05;
+    hatMat.maxSimultaneousLights = 2;
     hatMesh.material = hatMat;
 
     hatMesh.parent = headNode;
