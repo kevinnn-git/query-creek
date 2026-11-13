@@ -162,10 +162,10 @@ export class SceneManager {
   private async populateAllDistricts() {
     const shadowGen = this.lighting.getShadowGenerator();
 
+    // ==========================================
+    // DISTRICT 1: SHERIFF'S OFFICE & JAIL (Town Center)
+    // ==========================================
     try {
-      // ==========================================
-      // DISTRICT 1: SHERIFF'S OFFICE & JAIL (Town Center)
-      // ==========================================
       await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_office_building');
       const sheriffOffice = this.assetRegistry.instantiate('sheriff_office_building', 'sheriffOffice');
       const officeRoot = sheriffOffice.rootNodes[0];
@@ -180,39 +180,51 @@ export class SceneManager {
       this.lighting.createLanternLight('officeLantern', new Vector3(-10, 3.2, -4), this.scene);
 
       // Sheriff Office Interior Props (Ledger Desk, Chair, Archive Shelf, Jail Door)
-      await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_desk');
-      const desk = this.assetRegistry.instantiate('sheriff_desk', 'sheriffDesk');
-      if (desk.rootNodes[0]) {
-        desk.rootNodes[0].position = new Vector3(-13.2, 0, -4.2);
-        desk.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
-        desk.rootNodes[0].rotation = new Vector3(0, Math.PI, 0);
-      }
+      try {
+        await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_desk');
+        const desk = this.assetRegistry.instantiate('sheriff_desk', 'sheriffDesk');
+        if (desk.rootNodes[0]) {
+          desk.rootNodes[0].position = new Vector3(-13.2, 0, -4.2);
+          desk.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
+          desk.rootNodes[0].rotation = new Vector3(0, Math.PI, 0);
+        }
+      } catch (e) { console.warn('[District 1] desk load warning:', e); }
 
-      await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_chair');
-      const chair = this.assetRegistry.instantiate('saloon_chair', 'deskChair');
-      if (chair.rootNodes[0]) {
-        chair.rootNodes[0].position = new Vector3(-13.2, 0, -5.2);
-        chair.rootNodes[0].scaling = new Vector3(1.3, 1.3, 1.3);
-      }
+      try {
+        await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_chair');
+        const chair = this.assetRegistry.instantiate('saloon_chair', 'deskChair');
+        if (chair.rootNodes[0]) {
+          chair.rootNodes[0].position = new Vector3(-13.2, 0, -5.2);
+          chair.rootNodes[0].scaling = new Vector3(1.3, 1.3, 1.3);
+        }
+      } catch (e) { console.warn('[District 1] chair load warning:', e); }
 
-      await this.assetRegistry.loadGlbContainer(this.scene, 'archive_shelf');
-      const shelf = this.assetRegistry.instantiate('archive_shelf', 'archiveShelf');
-      if (shelf.rootNodes[0]) {
-        shelf.rootNodes[0].position = new Vector3(-15.8, 0, -2.5);
-        shelf.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
-        shelf.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
-      }
+      try {
+        await this.assetRegistry.loadGlbContainer(this.scene, 'archive_shelf');
+        const shelf = this.assetRegistry.instantiate('archive_shelf', 'archiveShelf');
+        if (shelf.rootNodes[0]) {
+          shelf.rootNodes[0].position = new Vector3(-15.8, 0, -2.5);
+          shelf.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
+          shelf.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
+        }
+      } catch (e) { console.warn('[District 1] shelf load warning:', e); }
 
-      await this.assetRegistry.loadGlbContainer(this.scene, 'jail_door');
-      const jailDoor = this.assetRegistry.instantiate('jail_door', 'jailDoor');
-      if (jailDoor.rootNodes[0]) {
-        jailDoor.rootNodes[0].position = new Vector3(-11.2, 0, -2.2);
-        jailDoor.rootNodes[0].scaling = new Vector3(1.2, 1.2, 1.2);
-      }
+      try {
+        await this.assetRegistry.loadGlbContainer(this.scene, 'jail_door');
+        const jailDoor = this.assetRegistry.instantiate('jail_door', 'jailDoor');
+        if (jailDoor.rootNodes[0]) {
+          jailDoor.rootNodes[0].position = new Vector3(-11.2, 0, -2.2);
+          jailDoor.rootNodes[0].scaling = new Vector3(1.2, 1.2, 1.2);
+        }
+      } catch (e) { console.warn('[District 1] jail_door load warning:', e); }
+    } catch (e) {
+      console.warn('[SceneManager] District 1 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 2: THE GILDED SPUR SALOON
-      // ==========================================
+    // ==========================================
+    // DISTRICT 2: THE GILDED SPUR SALOON
+    // ==========================================
+    try {
       await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_building');
       const saloon = this.assetRegistry.instantiate('saloon_building', 'saloon');
       const saloonRoot = saloon.rootNodes[0];
@@ -225,10 +237,14 @@ export class SceneManager {
         }
       }
       this.lighting.createLanternLight('saloonLantern', new Vector3(9, 3.5, 2), this.scene);
+    } catch (e) {
+      console.warn('[SceneManager] District 2 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 3: IRONVAULT BANK
-      // ==========================================
+    // ==========================================
+    // DISTRICT 3: IRONVAULT BANK
+    // ==========================================
+    try {
       await this.assetRegistry.loadGlbContainer(this.scene, 'bank_building');
       const bank = this.assetRegistry.instantiate('bank_building', 'bank');
       if (bank.rootNodes[0]) {
@@ -248,10 +264,14 @@ export class SceneManager {
           mayor.rootNodes[0].getChildMeshes().forEach((m) => shadowGen.addShadowCaster(m));
         }
       }
+    } catch (e) {
+      console.warn('[SceneManager] District 3 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 4: WESTERN UNION TELEGRAPH OFFICE (x=16, z=-16)
-      // ==========================================
+    // ==========================================
+    // DISTRICT 4: WESTERN UNION TELEGRAPH OFFICE (x=16, z=-16)
+    // ==========================================
+    try {
       const telegraph = this.assetRegistry.instantiate('bank_building', 'telegraphOffice');
       if (telegraph.rootNodes[0]) {
         telegraph.rootNodes[0].position = new Vector3(16, 0, -16);
@@ -283,10 +303,14 @@ PRIORITY: URGENT / PRIVATE WIRE 4
 "Prepare North Ridge shaft. The second ledger was not found in Hale desk. Intercept freight car 402 at siding. Vance prepared the counterfeit certificate. Let no one inspect the train manifest."`
         }
       });
+    } catch (e) {
+      console.warn('[SceneManager] District 4 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 5: DR. VANCE'S APOTHECARY (x=-18, z=-20)
-      // ==========================================
+    // ==========================================
+    // DISTRICT 5: DR. VANCE'S APOTHECARY (x=-18, z=-20)
+    // ==========================================
+    try {
       const apothecary = this.assetRegistry.instantiate('sheriff_office_building', 'apothecaryBuilding');
       if (apothecary.rootNodes[0]) {
         apothecary.rootNodes[0].position = new Vector3(-18, 0, -20);
@@ -320,10 +344,14 @@ Lethal concentrations of chloral hydrate sedative detected in bloodstream. Blunt
 [CONFIDENTIAL FORGERY NOTE]: Signed under duress from Mayor Vale to cover mine extraction.`
         }
       });
+    } catch (e) {
+      console.warn('[SceneManager] District 5 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 6: REDROCK TRAIN DEPOT (x=28, z=24)
-      // ==========================================
+    // ==========================================
+    // DISTRICT 6: REDROCK TRAIN DEPOT (x=28, z=24)
+    // ==========================================
+    try {
       const depot = this.assetRegistry.instantiate('saloon_building', 'trainDepot');
       if (depot.rootNodes[0]) {
         depot.rootNodes[0].position = new Vector3(28, 0, 24);
@@ -357,11 +385,14 @@ INSPECTION FLAG: CONCEALED_GOLD_BULLION_SAFES & DYNAMITE
 Authorized by: G. Vale & E. Cross`
         }
       });
+    } catch (e) {
+      console.warn('[SceneManager] District 6 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 7: WHISPERING PINES CEMETERY (x=-30, z=28)
-      // ==========================================
-      // Cemetery Pine Grove Trees
+    // ==========================================
+    // DISTRICT 7: WHISPERING PINES CEMETERY (x=-30, z=28)
+    // ==========================================
+    try {
       await this.assetRegistry.loadGlbContainer(this.scene, 'pine_tree');
       const pineCoords = [
         [-30, 28], [-34, 30], [-26, 26], [-32, 24], [-28, 32]
@@ -399,10 +430,14 @@ EXHUMATION FINDING:
 The pine coffin was disinterred under moonlight. No body was found—only iron scrap weights and river stones. Sheriff Rowan Hale was never buried here; he was captured and relocated to the North Ridge Mine!`
         }
       });
+    } catch (e) {
+      console.warn('[SceneManager] District 7 load error:', e);
+    }
 
-      // ==========================================
-      // DISTRICT 8: NORTH RIDGE ABANDONED MINE (x=36, z=-34)
-      // ==========================================
+    // ==========================================
+    // DISTRICT 8: NORTH RIDGE ABANDONED MINE (x=36, z=-34)
+    // ==========================================
+    try {
       await this.assetRegistry.loadGlbContainer(this.scene, 'canyon_rock_01');
       const mineRocks = [
         [36, -34], [40, -32], [32, -36], [42, -38]
@@ -451,8 +486,14 @@ CONSPIRACY AUDIT CONFIRMED:
 The bank robbery was staged, the murder reports were forged, and the entire frontier territory was under syndicate seizure. With this ledger, the law is restored to Query Creek.`
         }
       });
+    } catch (e) {
+      console.warn('[SceneManager] District 8 load error:', e);
+    }
 
-      // Town props (cart, barrel, crate, bench)
+    // ==========================================
+    // TOWN PROPS: Cart, Barrels, Crates, Bench
+    // ==========================================
+    try {
       await this.assetRegistry.loadGlbContainer(this.scene, 'wooden_cart');
       const cart = this.assetRegistry.instantiate('wooden_cart', 'cart');
       if (cart.rootNodes[0]) {
@@ -475,18 +516,18 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
         crate.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
       }
 
-      await this.assetRegistry.loadGlbContainer(this.scene, 'bench');
-      const bench = this.assetRegistry.instantiate('bench', 'bench_1');
+      await this.assetRegistry.loadGlbContainer(this.scene, 'boardwalk_bench');
+      const bench = this.assetRegistry.instantiate('boardwalk_bench', 'bench_1');
       if (bench.rootNodes[0]) {
         bench.rootNodes[0].position = new Vector3(-8.0, 0.35, -8.0);
         bench.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
         bench.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
       }
-
-      console.log('[SceneManager] All 8 frontier districts populated with buildings, props, POIs, and boss encounter.');
-    } catch (err) {
-      console.error('[SceneManager] Error populating districts:', err);
+    } catch (e) {
+      console.warn('[SceneManager] Town props load error:', e);
     }
+
+    console.log('[SceneManager] All 8 frontier districts populated with buildings, props, POIs, and boss encounter.');
   }
 
   public startRenderLoop() {

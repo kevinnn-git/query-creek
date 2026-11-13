@@ -45,10 +45,16 @@ export class EngineFactory {
           console.warn('[EngineFactory] Could not query GPU adapter info:', e);
         }
 
+        const rendererName =
+          adapterInfo?.description ||
+          adapterInfo?.device ||
+          (adapterInfo?.vendor ? `${adapterInfo.vendor} WebGPU` : 'WebGPU Hardware Accelerated');
+
         return {
           engine: webgpuEngine,
           engineType: 'WebGPU',
           adapterInfo,
+          glRenderer: rendererName,
         };
       } catch (err) {
         console.warn('[EngineFactory] WebGPU initialization failed, falling back to WebGL2:', err);

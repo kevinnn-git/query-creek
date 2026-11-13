@@ -30,3 +30,6 @@ asset-staging/incoming/*.zip
 asset-staging/extracted/*
 !asset-staging/extracted/.gitkeep
 
+# Scratch files
+scratch/
+

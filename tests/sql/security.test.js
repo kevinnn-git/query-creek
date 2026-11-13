@@ -122,3 +122,4 @@ test('SQL Database Security & Query Guardrails', async (t) => {
     assert.equal(res2.safeMaxRows, 50);
   });
 });
+
