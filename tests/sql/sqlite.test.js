@@ -60,3 +60,4 @@ test('SQLite WASM Database Integration & Schema Integrity', async (t) => {
 
   db.close();
 });
+

@@ -1,17 +1,21 @@
 import { Scene } from '@babylonjs/core/scene';
 import { Engine } from '@babylonjs/core/Engines/engine';
-import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
 import { PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugin';
 import { Color4 } from '@babylonjs/core/Maths/math.color';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 
 import { HavokSetup } from '../physics/HavokSetup';
 import { HybridAssetRegistry } from './HybridAssetRegistry';
 import { LightingManager } from './Lighting';
 import { CinematicPipelineManager } from './RenderingPipeline';
+import { PlayerInput } from '../player/PlayerInput';
+import { CameraController } from '../player/CameraController';
+import { Player } from '../player/Player';
+import { InteractableManager } from '../world/InteractableManager';
+import { useGameStore } from '../store/useGameStore';
 
 export interface SceneDiagnostics {
   fps: number;
@@ -24,66 +28,74 @@ export interface SceneDiagnostics {
 export class SceneManager {
   private engine: Engine;
   private scene: Scene;
-  private camera: ArcRotateCamera | null = null;
+  private camera: UniversalCamera;
+  private cameraController: CameraController;
   private lighting: LightingManager;
   private pipeline: CinematicPipelineManager;
   private assetRegistry: HybridAssetRegistry;
   private isRunning: boolean = false;
-  private playerNode: TransformNode | null = null;
+
+  // Player & Gameplay
+  public playerInput: PlayerInput;
+  public player: Player;
+  public interactableManager: InteractableManager;
+
+  private lastTime: number = performance.now();
 
   constructor(engine: Engine) {
     this.engine = engine;
     this.scene = new Scene(engine);
     this.scene.clearColor = new Color4(0.08, 0.06, 0.05, 1.0);
+
+    const canvas = this.engine.getRenderingCanvas()!;
+    this.playerInput = new PlayerInput(canvas);
+
+    // Universal Camera controlled by CameraController
+    this.camera = new UniversalCamera('thirdPersonCamera', new Vector3(0, 3, -6), this.scene);
+    this.cameraController = new CameraController(this.camera, this.scene);
+
     this.lighting = new LightingManager();
     this.pipeline = new CinematicPipelineManager();
     this.assetRegistry = HybridAssetRegistry.getInstance();
+
+    this.player = new Player(this.scene, this.playerInput, this.cameraController);
+    this.interactableManager = new InteractableManager(this.scene);
   }
 
   public async initializeScene(): Promise<void> {
-    console.log('[SceneManager] Initializing Babylon scene and physics...');
+    console.log('[SceneManager] Initializing Babylon scene, physics, and gameplay...');
 
-    // 1. Setup Camera
-    this.camera = new ArcRotateCamera(
-      'thirdPersonCamera',
-      -Math.PI / 2,
-      Math.PI / 2.8,
-      12,
-      new Vector3(0, 1.5, 0),
-      this.scene
-    );
-    this.camera.attachControl(this.engine.getRenderingCanvas(), true);
-    this.camera.lowerRadiusLimit = 4;
-    this.camera.upperRadiusLimit = 25;
-    this.camera.wheelPrecision = 30;
-
-    // 2. Initialize Havok Physics
+    // 1. Initialize Havok Physics
     try {
       await HavokSetup.initPhysics(this.scene);
     } catch (e) {
       console.warn('[SceneManager] Havok physics could not initialize, continuing scene without physics:', e);
     }
 
-    // 3. Setup Cinematic Western Lighting
+    // 2. Setup Cinematic Western Lighting
     this.lighting.setupCinematicLighting(this.scene, true);
+    const shadowGen = this.lighting.getShadowGenerator();
 
-    // 4. Load Asset Manifest
+    // 3. Load Asset Manifest
     await this.assetRegistry.loadManifest();
 
-    // 5. Build Environment Terrain / Frontier Dirt Ground
+    // 4. Build Environment Terrain / Frontier Dirt Ground & Boardwalk
     this.createGround();
 
-    // 6. Load Frontier District Buildings & Props
+    // 5. Populate Frontier District Buildings & Props
     await this.populateInitialFrontierDistrict();
+
+    // 6. Load Animated Character
+    await this.player.loadCharacter(shadowGen);
 
     // 7. Setup Cinematic Post-Processing Pipeline
     this.pipeline.setupPipeline(this.scene, this.camera, 'medium');
 
-    console.log('[SceneManager] Scene initialized successfully.');
+    console.log('[SceneManager] Scene & Player initialized successfully.');
   }
 
   private createGround() {
-    // 80x80 meter frontier town dirt ground
+    // 90x90 meter frontier town dirt ground
     const ground = MeshBuilder.CreateGround('frontierGround', { width: 90, height: 90, subdivisions: 8 }, this.scene);
     ground.receiveShadows = true;
 
@@ -100,16 +112,13 @@ export class SceneManager {
       console.warn('[SceneManager] Could not apply PBR dirt texture to ground:', e);
     }
 
-    // Static ground physics collider
     try {
       new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0, restitution: 0.1, friction: 0.8 }, this.scene);
-    } catch (e) {
-      // Physics aggregate fallback
-    }
+    } catch (e) {}
 
     // Main Street wooden boardwalk sidewalks
-    const boardwalk = MeshBuilder.CreateBox('boardwalk', { width: 4, height: 0.25, depth: 40 }, this.scene);
-    boardwalk.position = new Vector3(-8, 0.12, 0);
+    const boardwalk = MeshBuilder.CreateBox('boardwalk', { width: 4.5, height: 0.35, depth: 36 }, this.scene);
+    boardwalk.position = new Vector3(-8.2, 0.17, 0);
     boardwalk.receiveShadows = true;
     try {
       const woodPbr = this.assetRegistry.createPbrMaterial(this.scene, 'mat_boardwalk_wood', {
@@ -119,16 +128,14 @@ export class SceneManager {
         roughness: 0.75,
       });
       boardwalk.material = woodPbr;
-    } catch (e) {
-      // Fallback
-    }
+    } catch (e) {}
   }
 
   private async populateInitialFrontierDistrict() {
     const shadowGen = this.lighting.getShadowGenerator();
 
     try {
-      // 1. Sheriff Office Building
+      // 1. Sheriff Office Building & Jail
       await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_office_building');
       const sheriffOffice = this.assetRegistry.instantiate('sheriff_office_building', 'sheriffOffice');
       const officeRoot = sheriffOffice.rootNodes[0];
@@ -140,11 +147,40 @@ export class SceneManager {
           officeRoot.getChildMeshes().forEach((m) => shadowGen.addShadowCaster(m));
         }
       }
-
-      // Add a warm lantern light at the Sheriff Office entrance
       this.lighting.createLanternLight('officeLantern', new Vector3(-10, 3.2, -4), this.scene);
 
-      // 2. The Gilded Spur Saloon
+      // 2. Sheriff Office Interior Props (Ledger Desk, Chair, Archive Shelf, Jail Door)
+      await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_desk');
+      const desk = this.assetRegistry.instantiate('sheriff_desk', 'sheriffDesk');
+      if (desk.rootNodes[0]) {
+        desk.rootNodes[0].position = new Vector3(-13.2, 0, -4.2);
+        desk.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
+        desk.rootNodes[0].rotation = new Vector3(0, Math.PI, 0);
+      }
+
+      await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_chair');
+      const chair = this.assetRegistry.instantiate('saloon_chair', 'deskChair');
+      if (chair.rootNodes[0]) {
+        chair.rootNodes[0].position = new Vector3(-13.2, 0, -5.2);
+        chair.rootNodes[0].scaling = new Vector3(1.3, 1.3, 1.3);
+      }
+
+      await this.assetRegistry.loadGlbContainer(this.scene, 'archive_shelf');
+      const shelf = this.assetRegistry.instantiate('archive_shelf', 'archiveShelf');
+      if (shelf.rootNodes[0]) {
+        shelf.rootNodes[0].position = new Vector3(-15.8, 0, -2.5);
+        shelf.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
+        shelf.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
+      }
+
+      await this.assetRegistry.loadGlbContainer(this.scene, 'jail_door');
+      const jailDoor = this.assetRegistry.instantiate('jail_door', 'jailDoor');
+      if (jailDoor.rootNodes[0]) {
+        jailDoor.rootNodes[0].position = new Vector3(-11.2, 0, -2.2);
+        jailDoor.rootNodes[0].scaling = new Vector3(1.2, 1.2, 1.2);
+      }
+
+      // 3. The Gilded Spur Saloon Building
       await this.assetRegistry.loadGlbContainer(this.scene, 'saloon_building');
       const saloon = this.assetRegistry.instantiate('saloon_building', 'saloon');
       const saloonRoot = saloon.rootNodes[0];
@@ -158,34 +194,59 @@ export class SceneManager {
       }
       this.lighting.createLanternLight('saloonLantern', new Vector3(9, 3.5, 2), this.scene);
 
-      // 3. Wagon Cart & Town Props
-      await this.assetRegistry.loadGlbContainer(this.scene, 'wooden_cart');
-      const cart = this.assetRegistry.instantiate('wooden_cart', 'cart');
-      const cartRoot = cart.rootNodes[0];
-      if (cartRoot) {
-        cartRoot.position = new Vector3(-4, 0, 8);
-        cartRoot.scaling = new Vector3(1.6, 1.6, 1.6);
-        cartRoot.rotation = new Vector3(0, 0.4, 0);
+      // 4. Ironvault Bank Building
+      await this.assetRegistry.loadGlbContainer(this.scene, 'bank_building');
+      const bank = this.assetRegistry.instantiate('bank_building', 'bank');
+      if (bank.rootNodes[0]) {
+        bank.rootNodes[0].position = new Vector3(-14, 0, 14);
+        bank.rootNodes[0].scaling = new Vector3(2.2, 2.2, 2.2);
+        bank.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
       }
 
-      // 4. Barrels & Crates
+      // 5. Mayor Gideon Vale NPC (standing outside on the boardwalk)
+      await this.assetRegistry.loadGlbContainer(this.scene, 'mayor_gideon');
+      const mayor = this.assetRegistry.instantiate('mayor_gideon', 'mayor');
+      if (mayor.rootNodes[0]) {
+        mayor.rootNodes[0].position = new Vector3(-6.0, 0.35, -4.0);
+        mayor.rootNodes[0].scaling = new Vector3(1.3, 1.3, 1.3);
+        mayor.rootNodes[0].rotation = new Vector3(0, Math.PI / 1.5, 0);
+        if (shadowGen) {
+          mayor.rootNodes[0].getChildMeshes().forEach((m) => shadowGen.addShadowCaster(m));
+        }
+      }
+
+      // 6. Wagon Cart & Town Street Props
+      await this.assetRegistry.loadGlbContainer(this.scene, 'wooden_cart');
+      const cart = this.assetRegistry.instantiate('wooden_cart', 'cart');
+      if (cart.rootNodes[0]) {
+        cart.rootNodes[0].position = new Vector3(-3.5, 0, 4);
+        cart.rootNodes[0].scaling = new Vector3(1.6, 1.6, 1.6);
+        cart.rootNodes[0].rotation = new Vector3(0, 0.4, 0);
+      }
+
       await this.assetRegistry.loadGlbContainer(this.scene, 'wood_barrel');
       const barrel = this.assetRegistry.instantiate('wood_barrel', 'barrel_1');
-      const barrelRoot = barrel.rootNodes[0];
-      if (barrelRoot) {
-        barrelRoot.position = new Vector3(-8.5, 0.25, -2);
-        barrelRoot.scaling = new Vector3(1.4, 1.4, 1.4);
+      if (barrel.rootNodes[0]) {
+        barrel.rootNodes[0].position = new Vector3(-8.8, 0.35, -1.8);
+        barrel.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
       }
 
       await this.assetRegistry.loadGlbContainer(this.scene, 'wood_crate');
       const crate = this.assetRegistry.instantiate('wood_crate', 'crate_1');
-      const crateRoot = crate.rootNodes[0];
-      if (crateRoot) {
-        crateRoot.position = new Vector3(-8.5, 0.25, -3.2);
-        crateRoot.scaling = new Vector3(1.5, 1.5, 1.5);
+      if (crate.rootNodes[0]) {
+        crate.rootNodes[0].position = new Vector3(-8.8, 0.35, -3.0);
+        crate.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
       }
 
-      // 5. Pine Trees along the frontier road
+      await this.assetRegistry.loadGlbContainer(this.scene, 'bench');
+      const bench = this.assetRegistry.instantiate('bench', 'bench_1');
+      if (bench.rootNodes[0]) {
+        bench.rootNodes[0].position = new Vector3(-8.0, 0.35, -8.0);
+        bench.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
+        bench.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
+      }
+
+      // 7. Pine Trees along the canyon line
       await this.assetRegistry.loadGlbContainer(this.scene, 'pine_tree');
       const tree1 = this.assetRegistry.instantiate('pine_tree', 'pine_1');
       if (tree1.rootNodes[0]) {
@@ -193,7 +254,7 @@ export class SceneManager {
         tree1.rootNodes[0].scaling = new Vector3(2.5, 2.8, 2.5);
       }
 
-      // 6. Canyon Boulders
+      // 8. Canyon Boulders
       await this.assetRegistry.loadGlbContainer(this.scene, 'canyon_rock_01');
       const rock1 = this.assetRegistry.instantiate('canyon_rock_01', 'rock_1');
       if (rock1.rootNodes[0]) {
@@ -201,37 +262,7 @@ export class SceneManager {
         rock1.rootNodes[0].scaling = new Vector3(3.0, 3.5, 3.0);
       }
 
-      // 7. Arcane Sheriff Character (Adventurer GLB)
-      await this.assetRegistry.loadGlbContainer(this.scene, 'sheriff_model');
-      const sheriff = this.assetRegistry.instantiate('sheriff_model', 'sheriff');
-      const sheriffRoot = sheriff.rootNodes[0];
-      if (sheriffRoot) {
-        sheriffRoot.position = new Vector3(0, 0, 0);
-        sheriffRoot.scaling = new Vector3(1.3, 1.3, 1.3);
-        if (shadowGen) {
-          sheriffRoot.getChildMeshes().forEach((m) => shadowGen.addShadowCaster(m));
-        }
-        this.playerNode = sheriffRoot;
-        // Point camera target to sheriff
-        if (this.camera) {
-          this.camera.setTarget(sheriffRoot.position.add(new Vector3(0, 1.4, 0)));
-        }
-      }
-
-      // 8. Mayor Gideon Vale NPC
-      await this.assetRegistry.loadGlbContainer(this.scene, 'mayor_gideon');
-      const mayor = this.assetRegistry.instantiate('mayor_gideon', 'mayor');
-      const mayorRoot = mayor.rootNodes[0];
-      if (mayorRoot) {
-        mayorRoot.position = new Vector3(-6, 0.25, -5);
-        mayorRoot.scaling = new Vector3(1.3, 1.3, 1.3);
-        mayorRoot.rotation = new Vector3(0, Math.PI / 1.5, 0);
-        if (shadowGen) {
-          mayorRoot.getChildMeshes().forEach((m) => shadowGen.addShadowCaster(m));
-        }
-      }
-
-      console.log('[SceneManager] Frontier district assets spawned and placed.');
+      console.log('[SceneManager] Phase 1 frontier district populated with buildings, props, and NPCs.');
     } catch (err) {
       console.error('[SceneManager] Error populating district:', err);
     }
@@ -240,10 +271,63 @@ export class SceneManager {
   public startRenderLoop() {
     if (this.isRunning) return;
     this.isRunning = true;
+    this.lastTime = performance.now();
+
     this.engine.runRenderLoop(() => {
+      const now = performance.now();
+      const deltaTime = Math.min(0.1, (now - this.lastTime) / 1000);
+      this.lastTime = now;
+
+      const store = useGameStore.getState();
+
+      // Only update player and camera when no modal is open
+      const canMove = store.activeModal === 'none';
+      this.playerInput.setEnabled(canMove);
+
+      if (canMove) {
+        // 1. Update Player Movement & Locomotion Animations
+        this.player.update(deltaTime);
+
+        // 2. Consume Mouse Deltas & Update Camera
+        const { dx, dy } = this.playerInput.consumeMouseDeltas();
+        this.cameraController.update(this.player.getPosition(), dx, dy, deltaTime);
+
+        // 3. Update Nearby Interactables
+        const nearby = this.interactableManager.update(this.player.getPosition(), deltaTime);
+        if (nearby) {
+          store.setActivePrompt(nearby.prompt);
+
+          // Handle 'E' key interact trigger
+          if (this.playerInput.interact) {
+            this.playerInput.interact = false;
+            this.handleInteraction(nearby);
+          }
+        } else {
+          store.setActivePrompt(null);
+        }
+
+        // 4. Handle 'Q' Sheriff's Sense
+        if (this.playerInput.sheriffSense) {
+          this.playerInput.sheriffSense = false;
+          this.interactableManager.triggerSheriffSense(5.0);
+        }
+      }
+
       this.scene.render();
     });
-    console.log('[SceneManager] Render loop started.');
+
+    console.log('[SceneManager] Game render loop running.');
+  }
+
+  private handleInteraction(interactable: any) {
+    const store = useGameStore.getState();
+    console.log(`[SceneManager] Interacting with: ${interactable.name}`);
+
+    if (interactable.type === 'clue' || interactable.type === 'document') {
+      store.setActiveClue(interactable.payload);
+    } else if (interactable.type === 'npc') {
+      store.setActiveDialogue(interactable.payload);
+    }
   }
 
   public stopRenderLoop() {
@@ -267,12 +351,13 @@ export class SceneManager {
     return this.scene;
   }
 
-  public getCamera(): ArcRotateCamera | null {
+  public getCamera(): UniversalCamera {
     return this.camera;
   }
 
   public dispose() {
     this.stopRenderLoop();
+    this.playerInput.dispose();
     this.assetRegistry.disposeAll();
     this.scene.dispose();
   }

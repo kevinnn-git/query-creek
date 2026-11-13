@@ -6,6 +6,10 @@ import { useGameStore } from '../store/useGameStore';
 import { HUD } from '../ui/HUD';
 import { SqlTerminal } from '../ui/SqlTerminal';
 import { MainMenu } from '../ui/MainMenu';
+import { InteractionPrompt } from '../ui/InteractionPrompt';
+import { ClueModal } from '../ui/ClueModal';
+import { DialoguePanel } from '../ui/DialoguePanel';
+import { QuestNotification } from '../ui/QuestNotification';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -19,6 +23,8 @@ export const App: React.FC = () => {
     setDbReady,
     setDbError,
     setSchema,
+    setActiveClue,
+    setActiveDialogue,
   } = useGameStore();
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export const App: React.FC = () => {
           engineReady: true,
         });
 
-        // 3. Initialize Scene
+        // 3. Initialize Scene, Player & World
         const sceneManager = new SceneManager(engineResult.engine as any);
         sceneManagerRef.current = sceneManager;
         await sceneManager.initializeScene();
@@ -116,10 +122,16 @@ export const App: React.FC = () => {
         e.preventDefault();
         setActiveModal(activeModal === 'terminal' ? 'none' : 'terminal');
       }
-      // Esc: Close current modal or open Menu
+      // Esc: Close active modal (clue, dialogue, grimoire) or open MainMenu
       else if (e.key === 'Escape') {
         e.preventDefault();
-        if (activeModal === 'none') {
+        if (activeModal === 'clue') {
+          setActiveClue(null);
+        } else if (activeModal === 'dialogue') {
+          setActiveDialogue(null);
+        } else if (activeModal === 'terminal') {
+          setActiveModal('none');
+        } else if (activeModal === 'none') {
           setActiveModal('menu');
         } else {
           setActiveModal('none');
@@ -129,7 +141,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeModal, setActiveModal]);
+  }, [activeModal, setActiveModal, setActiveClue, setActiveDialogue]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black font-sans">
@@ -142,9 +154,12 @@ export const App: React.FC = () => {
 
       {/* Frontier Noir UI Layers */}
       <HUD />
+      <InteractionPrompt />
+      <ClueModal />
+      <DialoguePanel />
+      <QuestNotification />
       <SqlTerminal />
       <MainMenu />
     </div>
   );
 };
-

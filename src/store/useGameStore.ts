@@ -27,8 +27,19 @@ export interface GameStore {
   addQueryHistory: (query: string) => void;
 
   // UI State
-  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire';
-  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire') => void;
+  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue';
+  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue') => void;
+
+  // Interaction State
+  activePrompt: string | null;
+  activeClue: any | null;
+  activeDialogue: any | null;
+  activeQuestNotification: { title: string; message: string } | null;
+  setActivePrompt: (prompt: string | null) => void;
+  setActiveClue: (clue: any | null) => void;
+  setActiveDialogue: (dialogue: any | null) => void;
+  showQuestNotification: (title: string, message: string) => void;
+  clearQuestNotification: () => void;
 
   // Story & Curriculum
   currentChapter: string;
@@ -78,9 +89,20 @@ export const useGameStore = create<GameStore>((set) => ({
   activeModal: 'none',
   setActiveModal: (activeModal) => set({ activeModal }),
 
+  // Interaction
+  activePrompt: null,
+  activeClue: null,
+  activeDialogue: null,
+  activeQuestNotification: null,
+  setActivePrompt: (activePrompt) => set({ activePrompt }),
+  setActiveClue: (activeClue) => set({ activeClue, activeModal: activeClue ? 'clue' : 'none' }),
+  setActiveDialogue: (activeDialogue) => set({ activeDialogue, activeModal: activeDialogue ? 'dialogue' : 'none' }),
+  showQuestNotification: (title, message) => set({ activeQuestNotification: { title, message } }),
+  clearQuestNotification: () => set({ activeQuestNotification: null }),
+
   // Story
   currentChapter: 'Chapter 1: The Disappearance of Rowan Hale',
-  currentObjective: 'Inspect Sheriff Rowan Hale\'s archive ledger to identify citizens of Query Creek.',
+  currentObjective: "Find Sheriff Rowan Hale's discarded master ledger inside the Sheriff's Office (Press [E] to inspect).",
   curriculumLevel: 0,
   setObjective: (currentChapter, currentObjective) => set({ currentChapter, currentObjective }),
   setCurriculumLevel: (curriculumLevel) => set({ curriculumLevel }),
