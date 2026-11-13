@@ -10,6 +10,7 @@ import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { ClueModal } from '../ui/ClueModal';
 import { DialoguePanel } from '../ui/DialoguePanel';
 import { QuestNotification } from '../ui/QuestNotification';
+import { Corkboard } from '../investigation/Corkboard';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -117,19 +118,19 @@ export const App: React.FC = () => {
   // Global Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Tab: Toggle SQL Grimoire
+      // Tab: Toggle SQL Grimoire / Corkboard
       if (e.key === 'Tab') {
         e.preventDefault();
-        setActiveModal(activeModal === 'terminal' ? 'none' : 'terminal');
+        setActiveModal(activeModal === 'terminal' || activeModal === 'corkboard' ? 'none' : 'terminal');
       }
-      // Esc: Close active modal (clue, dialogue, grimoire) or open MainMenu
+      // Esc: Close active modal (clue, dialogue, grimoire, corkboard) or open MainMenu
       else if (e.key === 'Escape') {
         e.preventDefault();
         if (activeModal === 'clue') {
           setActiveClue(null);
         } else if (activeModal === 'dialogue') {
           setActiveDialogue(null);
-        } else if (activeModal === 'terminal') {
+        } else if (activeModal === 'terminal' || activeModal === 'corkboard') {
           setActiveModal('none');
         } else if (activeModal === 'none') {
           setActiveModal('menu');
@@ -159,6 +160,7 @@ export const App: React.FC = () => {
       <DialoguePanel />
       <QuestNotification />
       <SqlTerminal />
+      <Corkboard />
       <MainMenu />
     </div>
   );

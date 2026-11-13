@@ -57,20 +57,26 @@ Execute:
 
     // 2. Mayor Gideon Vale on the boardwalk
     this.addInteractable({
-      id: 'mayor_gideon',
+      id: 'mayor_gideon_vale',
       name: 'Mayor Gideon Vale',
       prompt: 'Speak with Mayor Gideon Vale',
       position: new Vector3(-6.0, 0.1, -4.0),
       interactionRadius: 3.2,
       type: 'npc',
       payload: {
+        npcId: 'mayor_gideon_vale',
         npcName: 'Mayor Gideon Vale',
         role: 'Town Mayor & Bank President',
         dialogue: [
           {
+            id: 'start',
             speaker: 'Mayor Gideon Vale',
             text: "Ah, the new Sheriff. I trust your journey into Query Creek was uneventful. A pity about poor Rowan Hale... fine lawman, but his mind became unsettled by wild conspiracies.",
             responses: [
+              {
+                text: "Where were you during the bank robbery, Mayor?",
+                nextId: 'vale_alibi'
+              },
               {
                 text: "What happened to Sheriff Hale, Mr. Mayor?",
                 nextId: 'hale_inquiry'
@@ -83,6 +89,32 @@ Execute:
                 text: "I'll be inspecting the town records shortly.",
                 nextId: 'records_inquiry'
               }
+            ]
+          },
+          {
+            id: 'vale_alibi',
+            speaker: 'Mayor Gideon Vale',
+            text: "I was retired in my Town Hall residence by 9:00 PM and never went near the bank or touched the vault. Mara Voss and her gang bear sole guilt for the breach.",
+            responses: [
+              { text: "Are you certain you authorized no late transactions?", nextId: 'vale_alibi' },
+              { text: "I have other inquiries, Mayor.", nextId: 'close' }
+            ]
+          },
+          {
+            id: 'vale_cornered',
+            speaker: 'Mayor Gideon Vale',
+            text: "You... you dredged up the 23:15 contingency withdrawal slip?! Fine, Sheriff. Yes, I authorized the transfer before midnight. But if you think that proves I breached my own vault, you know nothing of the powers running Query Creek. Rowan Hale meddled in syndicate ledgers, and look where he ended up.",
+            responses: [
+              { text: "Where is Rowan Hale, Vale?!", nextId: 'vale_threat' },
+              { text: "Your syndicate won't escape the law.", nextId: 'close' }
+            ]
+          },
+          {
+            id: 'vale_threat',
+            speaker: 'Mayor Gideon Vale',
+            text: "Check The Gilded Spur Saloon, Sheriff. Silas Thorne holds the secondary register. Ask him what arrives on the midnight train from the North Ridge Mine.",
+            responses: [
+              { text: "I'll be speaking with Silas immediately.", nextId: 'close' }
             ]
           },
           {
@@ -136,6 +168,80 @@ SUSPECT NAMED: Mara Voss.
 
 INVESTIGATIVE NOTE (scrawled in margin):
 The vault lock showed no sign of dynamite or forced pick. The combination was used. Who had the combination?`
+      }
+    });
+
+    // 4. Saloon Proprietor Silas Thorne outside the Gilded Spur Saloon
+    this.addInteractable({
+      id: 'silas_thorne',
+      name: 'Silas Thorne',
+      prompt: 'Talk to Silas Thorne',
+      position: new Vector3(-14.0, 0.4, 18.0),
+      interactionRadius: 3.5,
+      type: 'npc',
+      payload: {
+        npcId: 'silas_thorne',
+        npcName: 'Silas Thorne',
+        role: 'Saloon Proprietor & Cashier',
+        dialogue: [
+          {
+            id: 'start',
+            speaker: 'Silas Thorne',
+            text: "Howdy, Sheriff. Looking for a drink or asking questions? Word travels fast in Query Creek—people say you're digging into Rowan Hale's old files.",
+            responses: [
+              { text: "Tell me what you saw the night of the bank robbery.", nextId: 'silas_denial' },
+              { text: "Did Mara Voss visit the saloon on October 14?", nextId: 'silas_mara' },
+              { text: "I'll be looking over your saloon tabs.", nextId: 'close' }
+            ]
+          },
+          {
+            id: 'silas_denial',
+            speaker: 'Silas Thorne',
+            text: "Saloon was packed till late. I don't know anything about mining shipments or gold transfers, Sheriff. I just pour whiskey and mind my own business.",
+            responses: [
+              { text: "Ezekiel Cross was here with armed mine guards.", nextId: 'silas_denial' },
+              { text: "I'll check the records myself.", nextId: 'close' }
+            ]
+          },
+          {
+            id: 'silas_mara',
+            speaker: 'Silas Thorne',
+            text: "Mara was here, yes. Ordered one cider and rode off toward the south valley well before 9 PM. If Mayor Vale says she robbed the bank at midnight, he's mistaken or lying.",
+            responses: [
+              { text: "That confirms Mara's alibi.", nextId: 'close' }
+            ]
+          },
+          {
+            id: 'silas_confession',
+            speaker: 'Silas Thorne',
+            text: "Alright, keep your voice down! Ezekiel Cross and his mine crew have been meeting here every Tuesday. They aren't hauling ore—they're transferring iron lockboxes onto the midnight express for Mayor Vale!",
+            responses: [
+              { text: "Where do the lockboxes go?", nextId: 'close' }
+            ]
+          }
+        ]
+      }
+    });
+
+    // 5. Saloon Bar Tab Ledger on the outdoor saloon table
+    this.addInteractable({
+      id: 'saloon_tab_ledger',
+      name: 'Saloon Patron Register',
+      prompt: 'Inspect Saloon Bar Tabs',
+      position: new Vector3(-15.5, 0.8, 19.5),
+      interactionRadius: 2.5,
+      type: 'document',
+      payload: {
+        title: "The Gilded Spur: October 14 Patron Register",
+        date: "October 14, 1891",
+        author: "Silas Thorne, Proprietor",
+        content: `SALOON LOG ENTRIES (OCTOBER 14):
+- Mara Voss: Ordered 1 cider, 25 cents. Time In: 19:30, Time Out: 20:45. Departed on horseback.
+- Dr. Alistair Vance: Ordered 1 bourbon, 35 cents. Time In: 21:45, Time Out: 22:30.
+- Ezekiel Cross: 6 whiskeys, 120 cents. Time In: 20:30, Time Out: 23:30. Accompanied by two armed guards.
+
+SHERIFF'S INSIGHT:
+Mara Voss was gone by 20:45 (8:45 PM). She could not have breached the bank vault at midnight!`
       }
     });
 
@@ -223,3 +329,4 @@ The vault lock showed no sign of dynamite or forced pick. The combination was us
     return this.interactables.get(id);
   }
 }
+

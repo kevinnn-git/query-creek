@@ -1,0 +1,110 @@
+import type { EvidenceItem, CorkboardPin, CorkboardLink } from './types';
+
+export const INITIAL_EVIDENCE_ITEMS: EvidenceItem[] = [
+  {
+    id: 'suspect_rowan_hale',
+    title: 'Rowan Hale (Missing Sheriff)',
+    type: 'suspect',
+    dateDiscovered: '1891-10-15',
+    source: 'Sheriff Office Personnel Dossier',
+    snippet: 'Appointed Arcane Sheriff in 1888. Disappeared 3 weeks ago while investigating double-entry bank ledgers.',
+    fullContent: 'Rowan Hale was investigating unauthorized gold shipments departing from Redrock Depot. His final log mentions Gideon Vale operating a secret secondary ledger.',
+    metadata: { status: 'Missing', suspicionLevel: 'Low' },
+  },
+  {
+    id: 'suspect_gideon_vale',
+    title: 'Mayor Gideon Vale',
+    type: 'suspect',
+    dateDiscovered: '1891-10-15',
+    source: 'Query Creek Civic Directory',
+    snippet: 'Mayor, town council chairman, and majority shareholder in Ironvault Bank. Claims he was asleep during the heist.',
+    fullContent: 'Vale holds political and economic dominion over Query Creek. Witnesses claim he was seen near the bank vault shortly before midnight.',
+    metadata: { status: 'Under Investigation', suspicionLevel: 'Very High' },
+  },
+  {
+    id: 'suspect_mara_voss',
+    title: 'Mara Voss',
+    type: 'suspect',
+    dateDiscovered: '1891-10-15',
+    source: 'Town Marshal Wanted Notice',
+    snippet: 'Rancher accused of leading the midnight bank raid. Saloon bar receipts indicate she departed before 9 PM.',
+    fullContent: 'Voss claims she was framed by the syndicate because Sheriff Hale passed her an encrypted key to the ledger.',
+    metadata: { status: 'Wanted / Fugitive', suspicionLevel: 'Contradicted' },
+  },
+  {
+    id: 'evidence_hale_notes',
+    title: "Rowan Hale's Last Logged Notes",
+    type: 'document',
+    dateDiscovered: '1891-10-15',
+    source: "Sheriff's Office Desk",
+    snippet: "Warns that the Ironvault Bank robbery was an inside job designed to destroy the audit trail. Points to 'citizens' table.",
+    fullContent: "To whoever wears the star next:\n\nIf you are reading this, Gideon Vale's syndicate has made their move. The Ironvault Bank robbery tonight was an inside job designed to wipe the audit trail before the territorial marshals arrive.\n\nThe official records in the town ledger are your weapon.",
+    isContradictionLead: true,
+  },
+  {
+    id: 'incident_notice',
+    title: 'Ironvault Robbery Incident Blotter',
+    type: 'document',
+    dateDiscovered: '1891-10-15',
+    source: 'Jailhouse Door Notice',
+    snippet: 'Bank vault breached at 23:45. Lock showed no sign of forced entry; combination was used.',
+    fullContent: 'INCIDENT ID: 1\nTYPE: Armed Vault Robbery\nLOCATION: Ironvault Bank, Main Street\nSUMMARY: Vault combination was used cleanly without dynamite or pick marks. Gideon Vale and Rowan Hale were the sole combination holders.',
+    isContradictionLead: true,
+  },
+];
+
+export const INITIAL_CORKBOARD_PINS: CorkboardPin[] = [
+  {
+    id: 'pin_suspect_vale',
+    evidenceId: 'suspect_gideon_vale',
+    x: 52,
+    y: 18,
+    rotation: -2,
+    pinColor: 'red',
+    customNote: 'Claims alibi in Town Hall after 9 PM. Does he hold the combination?',
+  },
+  {
+    id: 'pin_suspect_voss',
+    evidenceId: 'suspect_mara_voss',
+    x: 18,
+    y: 22,
+    rotation: 3,
+    pinColor: 'silver',
+    customNote: 'Framed suspect? Check saloon bar tabs for departure timestamp.',
+  },
+  {
+    id: 'pin_evidence_hale_notes',
+    evidenceId: 'evidence_hale_notes',
+    x: 22,
+    y: 62,
+    rotation: -1,
+    pinColor: 'gold',
+    customNote: 'Hale identified dual ledgers in the bank vault before disappearing.',
+  },
+  {
+    id: 'pin_incident_notice',
+    evidenceId: 'incident_notice',
+    x: 54,
+    y: 60,
+    rotation: 2,
+    pinColor: 'red',
+    customNote: 'No forced entry! Lock opened via combination.',
+  },
+];
+
+export const INITIAL_CORKBOARD_LINKS: CorkboardLink[] = [
+  {
+    id: 'link_1',
+    fromPinId: 'pin_suspect_vale',
+    toPinId: 'pin_incident_notice',
+    label: 'Combination Holder vs Heist Location',
+    isContradiction: true,
+  },
+  {
+    id: 'link_2',
+    fromPinId: 'pin_evidence_hale_notes',
+    toPinId: 'pin_suspect_voss',
+    label: 'Hale Passed Warning to Voss',
+    isContradiction: false,
+  },
+];

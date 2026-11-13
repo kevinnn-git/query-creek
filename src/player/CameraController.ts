@@ -91,3 +91,4 @@ export class CameraController {
     return new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).normalize();
   }
 }
+

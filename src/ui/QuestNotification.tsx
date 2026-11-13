@@ -35,3 +35,4 @@ export const QuestNotification: React.FC = () => {
     </div>
   );
 };
+

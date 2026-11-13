@@ -77,6 +77,45 @@ export class ChallengeValidator {
       };
     }
 
+    if (challenge.id === 'level_2_bank_alibi') {
+      const hasVale = cleanQuery.includes('vale');
+      const hasWhere = cleanQuery.includes('where');
+      const containsValeRow = result.rows.some(row =>
+        row.some(val => typeof val === 'string' && val.toLowerCase().includes('vale'))
+      );
+
+      if (!hasWhere || (!hasVale && !containsValeRow)) {
+        return {
+          passed: false,
+          message: 'Query does not isolate transactions authorized by Gideon Vale.',
+          feedback: "Use WHERE authorized_by = 'Gideon Vale' AND amount_gold >= 1000 to find Vale's late withdrawals."
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
+    if (challenge.id === 'level_2_syndicate_null') {
+      const hasNullCheck = cleanQuery.includes('null');
+      const hasLike = cleanQuery.includes('like') || cleanQuery.includes('syndicate');
+
+      if (!hasNullCheck && !hasLike) {
+        return {
+          passed: false,
+          message: 'Query does not search for NULL notes or Syndicate accounts.',
+          feedback: "Try: WHERE notes IS NULL OR account_name LIKE '%Syndicate%'"
+        };
+      }
+
+      return {
+        passed: true,
+        message: challenge.completionStoryMessage
+      };
+    }
+
     // Generic fallback validation
     return {
       passed: true,

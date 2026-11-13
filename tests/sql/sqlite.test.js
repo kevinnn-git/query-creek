@@ -58,6 +58,69 @@ test('SQLite WASM Database Integration & Schema Integrity', async (t) => {
     assert.strictEqual(confidentialCases, 2, 'Should have 2 confidential cases');
   });
 
+  await t.test('verifies Phase 2 bank, saloon, and witness evidence tables', () => {
+    db.exec(`
+      CREATE TABLE bank_transactions (
+        transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_name TEXT NOT NULL,
+        amount_gold REAL NOT NULL,
+        transaction_type TEXT NOT NULL,
+        authorized_by TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        notes TEXT
+      );
+
+      CREATE TABLE saloon_tabs (
+        tab_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patron_name TEXT NOT NULL,
+        drinks_ordered INTEGER DEFAULT 1,
+        total_cents INTEGER NOT NULL,
+        time_in TEXT NOT NULL,
+        time_out TEXT NOT NULL,
+        table_location TEXT NOT NULL,
+        notes TEXT
+      );
+
+      CREATE TABLE witness_statements (
+        statement_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        witness_name TEXT NOT NULL,
+        interview_date TEXT NOT NULL,
+        alibi_claim TEXT NOT NULL,
+        official_summary TEXT NOT NULL
+      );
+
+      INSERT INTO bank_transactions (account_name, amount_gold, transaction_type, authorized_by, timestamp, notes) VALUES
+      ('Town Hall Contingency', 2500.0, 'WITHDRAWAL', 'Gideon Vale', '1891-10-14 23:15', 'Emergency withdrawal preceding vault robbery'),
+      ('Syndicate Reserve', 15000.0, 'TRANSFER', 'Unknown', '1891-10-14 23:30', NULL);
+
+      INSERT INTO saloon_tabs (patron_name, drinks_ordered, total_cents, time_in, time_out, table_location, notes) VALUES
+      ('Mara Voss', 1, 25, '1891-10-14 19:30', '1891-10-14 20:45', 'Front Porch', 'Left on horseback toward south ranch before 9 PM');
+
+      INSERT INTO witness_statements (witness_name, interview_date, alibi_claim, official_summary) VALUES
+      ('Gideon Vale', '1891-10-15', 'I was retired in my Town Hall residence by 9:00 PM', 'Claims absolute absence');
+    `);
+
+    // Verify Vale contradiction query
+    const valeLateWithdrawals = db.selectValue(`
+      SELECT count(*) FROM bank_transactions
+      WHERE authorized_by = 'Gideon Vale'
+        AND timestamp > '1891-10-14 21:00';
+    `);
+    assert.strictEqual(valeLateWithdrawals, 1, 'Should find 1 late withdrawal authorized by Vale');
+
+    // Verify Mara Voss alibi departure time
+    const vossDeparture = db.selectValue(`
+      SELECT time_out FROM saloon_tabs WHERE patron_name = 'Mara Voss';
+    `);
+    assert.strictEqual(vossDeparture, '1891-10-14 20:45', 'Mara Voss departed before 9 PM');
+
+    // Verify IS NULL check
+    const nullNotesCount = db.selectValue(`
+      SELECT count(*) FROM bank_transactions WHERE notes IS NULL;
+    `);
+    assert.strictEqual(nullNotesCount, 1, 'Should find 1 transaction with NULL notes');
+  });
+
   db.close();
 });
 

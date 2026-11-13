@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Compass, Shield, Terminal, Activity, Cpu } from 'lucide-react';
+import { BookOpen, Compass, Shield, Terminal, Activity, Cpu, Pin } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 
 export const HUD: React.FC = () => {
@@ -8,6 +8,7 @@ export const HUD: React.FC = () => {
     currentObjective,
     activeModal,
     setActiveModal,
+    setInvestigationTab,
     fps,
     drawCalls,
     activeMeshes,
@@ -33,15 +34,30 @@ export const HUD: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Button: Open SQL Grimoire */}
-        <div className="pointer-events-auto">
+        {/* Action Buttons: Open SQL Grimoire / Corkboard */}
+        <div className="pointer-events-auto flex items-center gap-2">
           <button
-            onClick={() => setActiveModal(activeModal === 'terminal' ? 'none' : 'terminal')}
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded bg-gradient-to-br from-[#2a1c12] to-[#160f0a] border border-[#c5a059]/80 text-[#c5a059] hover:text-amber-200 hover:border-[#c5a059] shadow-xl transition-all"
+            onClick={() => {
+              setInvestigationTab('corkboard');
+              setActiveModal(activeModal === 'corkboard' ? 'none' : 'corkboard');
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded bg-gradient-to-br from-[#2a1c12] to-[#160f0a] border border-[#c5a059]/80 text-[#c5a059] hover:text-amber-200 hover:border-[#c5a059] shadow-xl transition-all"
+            title="Open Detective Corkboard"
+          >
+            <Pin className="w-3.5 h-3.5 text-[#c5a059]" />
+            <span className="font-serif font-bold text-xs uppercase tracking-wider">Corkboard</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setInvestigationTab('grimoire');
+              setActiveModal(activeModal === 'terminal' ? 'none' : 'terminal');
+            }}
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded bg-gradient-to-br from-[#2a1c12] to-[#160f0a] border border-[#c5a059]/80 text-[#c5a059] hover:text-amber-200 hover:border-[#c5a059] shadow-xl transition-all"
             title="Open Arcane SQL Grimoire (Tab)"
           >
-            <BookOpen className="w-4 h-4 text-[#c5a059]" />
-            <span className="font-serif font-bold text-xs uppercase tracking-wider">SQL Grimoire</span>
+            <BookOpen className="w-3.5 h-3.5 text-[#c5a059]" />
+            <span className="font-serif font-bold text-xs uppercase tracking-wider">Grimoire</span>
             <kbd className="px-1.5 py-0.5 rounded bg-[#120f0d] text-[10px] font-mono border border-[#4a2e18]">TAB</kbd>
           </button>
         </div>

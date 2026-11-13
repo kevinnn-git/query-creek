@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
-import { Play, Database, Table, HelpCircle, X, History, Sparkles, AlertCircle, CheckCircle, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Database, Table, HelpCircle, X, History, Sparkles, AlertCircle, CheckCircle, Award, Pin, MapPin } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { dbClient } from '../db/DbClient';
 import { QueryResult } from '../db/types';
 import { SQL_CURRICULUM, CurriculumManager } from '../sql/CurriculumManager';
 import { ChallengeValidator } from '../sql/ChallengeValidator';
+import { EvidenceItem } from '../investigation/types';
 
 export const SqlTerminal: React.FC = () => {
   const {
     activeModal,
     setActiveModal,
+    setInvestigationTab,
     schema,
     setSchema,
     lastResult,
@@ -23,6 +25,8 @@ export const SqlTerminal: React.FC = () => {
     setCurriculumLevel,
     setObjective,
     showQuestNotification,
+    addEvidence,
+    pinEvidence,
   } = useGameStore();
 
   const [queryText, setQueryText] = useState<string>('SELECT * FROM citizens LIMIT 10;');
@@ -88,6 +92,37 @@ export const SqlTerminal: React.FC = () => {
     }
   };
 
+  const handlePinRow = (row: (string | number | boolean | null)[], rIdx: number) => {
+    if (!lastResult) return;
+    const tableOrigin = activeChallenge.targetTable || 'ledger';
+    const snippet = lastResult.columns.map((c, i) => `${c}: ${row[i]}`).join(' | ');
+    const title = `${tableOrigin.toUpperCase()} Record #${rIdx + 1}`;
+
+    const newEvidence: EvidenceItem = {
+      id: `sql_record_${tableOrigin}_${rIdx}_${Date.now()}`,
+      title,
+      type: 'sql_record',
+      dateDiscovered: '1891-10-15',
+      source: `SQL Query on ${tableOrigin}`,
+      snippet: snippet.length > 140 ? snippet.slice(0, 140) + '...' : snippet,
+      fullContent: JSON.stringify(row),
+      queryOrigin: queryText,
+      metadata: {
+        table: tableOrigin,
+        authorizedBy: row.find((val) => typeof val === 'string' && val.includes('Gideon Vale')),
+        amount: row.find((val) => typeof val === 'number'),
+      },
+      isContradictionLead: snippet.includes('Gideon Vale'),
+    };
+
+    addEvidence(newEvidence);
+    pinEvidence(newEvidence.id, `Extracted via SQL: ${queryText}`);
+    showQuestNotification(
+      'Evidence Pinned to Corkboard',
+      `Extracted forensic record from ${tableOrigin}. Check your Detective Corkboard!`
+    );
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200"
@@ -96,22 +131,45 @@ export const SqlTerminal: React.FC = () => {
       <div className="relative flex flex-col w-full max-w-5xl h-[90vh] bg-[#120f0d] border-2 border-[#4a2e18] rounded-lg shadow-2xl overflow-hidden text-amber-100">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-5 py-3 bg-[#1a1614] border-b border-[#4a2e18]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c5a059] to-[#704214] flex items-center justify-center text-black font-bold shadow-md">
-              <Sparkles className="w-4 h-4 text-amber-950" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c5a059] to-[#704214] flex items-center justify-center text-black font-bold shadow-md">
+                <Sparkles className="w-4 h-4 text-amber-950" />
+              </div>
+              <div>
+                <h2 className="text-lg font-serif font-bold text-[#c5a059] tracking-wide flex items-center gap-2">
+                  <span>ARCANE SHERIFF'S SQL GRIMOIRE</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#2b1f17] text-amber-300 border border-[#c5a059]/40 font-mono">
+                    Level {activeChallenge.level}
+                  </span>
+                </h2>
+                <p className="text-xs text-amber-200/60">
+                  Frontier SQLite WASM • Storage: <span className="text-[#c5a059] font-mono uppercase">{dbStorage}</span>
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-serif font-bold text-[#c5a059] tracking-wide flex items-center gap-2">
-                <span>ARCANE SHERIFF'S SQL GRIMOIRE</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-[#2b1f17] text-amber-300 border border-[#c5a059]/40 font-mono">
-                  Level {activeChallenge.level}
-                </span>
-              </h2>
-              <p className="text-xs text-amber-200/60">
-                Frontier SQLite WASM • Storage: <span className="text-[#c5a059] font-mono uppercase">{dbStorage}</span>
-              </p>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center ml-4 gap-2 bg-[#25170f] p-1 rounded-md border border-[#4a2e18]">
+              <button
+                className="px-3 py-1 text-xs font-serif font-bold rounded bg-[#4a2e18] text-[#c5a059] border border-[#c5a059]/40 flex items-center gap-1.5 shadow"
+              >
+                <Database className="w-3.5 h-3.5 text-amber-400" />
+                <span>Grimoire</span>
+              </button>
+              <button
+                onClick={() => {
+                  setInvestigationTab('corkboard');
+                  setActiveModal('corkboard');
+                }}
+                className="px-3 py-1 text-xs font-serif rounded hover:bg-[#3d2719] text-amber-200/80 transition-colors flex items-center gap-1.5"
+              >
+                <Pin className="w-3.5 h-3.5 text-[#c5a059]" />
+                <span>Corkboard</span>
+              </button>
             </div>
           </div>
+
           <button
             onClick={() => setActiveModal('none')}
             className="p-1.5 rounded hover:bg-[#2b1f17] text-amber-300 transition-colors"
@@ -296,6 +354,7 @@ export const SqlTerminal: React.FC = () => {
                             {col}
                           </th>
                         ))}
+                        <th className="p-2 font-bold whitespace-nowrap text-right">Evidence</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#4a2e18]/30">
@@ -306,6 +365,16 @@ export const SqlTerminal: React.FC = () => {
                               {val === null ? <span className="text-amber-500/50 italic">NULL</span> : String(val)}
                             </td>
                           ))}
+                          <td className="p-2 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => handlePinRow(row, rIdx)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#382214] hover:bg-[#58371f] text-amber-200 border border-[#c5a059]/40 text-[11px] font-mono transition-colors shadow"
+                              title="Pin this row as evidence to the Detective Corkboard"
+                            >
+                              <Pin className="w-3 h-3 text-[#c5a059]" />
+                              <span>Pin</span>
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -49,4 +49,41 @@ test('SQL Curriculum & Challenge Validation', async (t) => {
     assert.strictEqual(res.passed, true);
     assert.match(res.message, /CONFIDENTIAL ARCHIVE ACCESSED/);
   });
+
+  await t.test('Level 2: validates Gideon Vale bank alibi query', () => {
+    const level2 = SQL_CURRICULUM[2];
+    const mockResult = {
+      columns: ['transaction_id', 'account_name', 'amount_gold', 'authorized_by', 'timestamp'],
+      rows: [[1, 'Town Hall Contingency', 2500.0, 'Gideon Vale', '1891-10-14 23:15']],
+      rowCount: 1,
+      executionTimeMs: 1.1
+    };
+
+    const res = ChallengeValidator.validate(
+      "SELECT * FROM bank_transactions WHERE authorized_by = 'Gideon Vale' AND amount_gold >= 1000;",
+      mockResult,
+      level2
+    );
+    assert.strictEqual(res.passed, true);
+    assert.match(res.message, /CONTRADICTION DISCOVERED/);
+  });
+
+  await t.test('Level 2B: validates IS NULL and LIKE pattern query', () => {
+    const level3 = SQL_CURRICULUM[3];
+    const mockResult = {
+      columns: ['transaction_id', 'account_name', 'notes'],
+      rows: [[3, 'Syndicate Reserve Account #9', null]],
+      rowCount: 1,
+      executionTimeMs: 0.8
+    };
+
+    const res = ChallengeValidator.validate(
+      "SELECT * FROM bank_transactions WHERE notes IS NULL OR account_name LIKE '%Syndicate%';",
+      mockResult,
+      level3
+    );
+    assert.strictEqual(res.passed, true);
+    assert.match(res.message, /CLANDESTINE TRANSFER EXPOSED/);
+  });
 });
+

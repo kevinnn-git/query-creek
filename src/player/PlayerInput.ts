@@ -158,3 +158,4 @@ export class PlayerInput {
     this.canvas.removeEventListener('click', this.requestPointerLock);
   }
 }
+

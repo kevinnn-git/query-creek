@@ -83,3 +83,47 @@
 - Automated test suite passed: 6/6 tests passing (100%).
 - Production build passed: `tsc -b && vite build` built in 16.17s with 0 errors.
 
+---
+
+### [2026-11-13] — Phase 2: Investigation and Story Systems
+
+#### 1. Interactive Detective Corkboard Subsystem (`src/investigation/`)
+- Implemented `Corkboard.tsx` providing a full-screen vintage detective board with rich cork texture, pushpins (red, gold, silver), and draggable evidence cards.
+- Integrated SVG red string threads dynamically drawn between connected pins, with contradiction threads pulsing crimson/gold and displaying hypothesis badges.
+- Implemented card drag-and-drop repositioning, unpinning, and an "Evidence Dossier" drawer allowing players to pin collected documents, suspects, and SQL ledger records.
+- Configured robust persistence via `localStorage` in `useGameStore.ts` saving pins, links, evidence, and solved contradictions across browser sessions.
+
+#### 2. SQL Evidence Pinning Bridge (`src/ui/SqlTerminal.tsx`)
+- Added an "Evidence" column with a `[Pin]` action button to every row rendered in the SQL query results table.
+- Clicking `[Pin]` extracts the row data, attaches the exact SQL query provenance, classifies it as an `EvidenceItem`, places it on the Detective Corkboard, and surfaces an achievement toast.
+- Added bidirectional navigation tabs in the header bar allowing players to toggle between the **Arcane SQL Grimoire** and **Detective Corkboard**.
+
+#### 3. Witness Interrogation & Evidence Contradiction (`src/investigation/`, `src/ui/DialoguePanel.tsx`)
+- Implemented `InterrogationManager.ts` managing contradiction rules, evidence checking, and story progression transitions.
+- Enhanced `DialoguePanel.tsx` with a prominent `[PRESS WITH FORENSIC EVIDENCE]` button opening an evidence selection modal.
+- Presenting contradictory evidence (e.g., Gideon Vale's 23:15 bank withdrawal slip against his false 9 PM alibi) shatters the witness's alibi, advances the story to **Chapter 2: The Syndicated Ledger**, unlocks Level 2 SQL curriculum, and triggers character-specific defensive confessions.
+- Presenting non-contradicting evidence produces realistic, immersive NPC rebuttals without stalling or breaking gameplay.
+
+#### 4. Expanded Database Schema & World Clues (`src/db/sqlite.worker.ts`, `src/world/InteractableManager.ts`)
+- Added canonical tables to the SQLite WASM database:
+  - `bank_transactions` (withdrawals, deposits, transfers, timestamps, authorized_by, notes).
+  - `saloon_tabs` (patron names, drink tallies, timestamps in/out, table locations).
+  - `witness_statements` (sworn depositions and alibis).
+- Seeded interconnected forensic data (Gideon Vale's late withdrawals, Mara Voss's departure alibi at 20:45, clandestine transfers with `notes IS NULL`).
+- Added interactive world entities: Silas Thorne (Saloon Proprietor) with branching dialogue, and the Saloon Patron Register on the porch table.
+
+#### 5. SQL Curriculum Expansion (Levels 1, 2, 2B) (`src/sql/`)
+- Expanded `CurriculumManager.ts` and `ChallengeValidator.ts`:
+  - Level 1: "The Confidential Files" (`WHERE`, `=`, `!=`, `ORDER BY DESC`).
+  - Level 2: "The Broken Alibi" (`WHERE`, `>=`, `AND`, comparison operators).
+  - Level 2B: "The Concealed Audit Trail" (`LIKE`, `BETWEEN`, `IN`, `IS NULL`).
+- Progressive 4-tier pedagogical hints for all challenges.
+
+#### 6. Verification & Automated Testing
+- Automated unit test suite passed: **14/14 tests passing** across 3 suites (`investigation.test.js`, `curriculum.test.js`, `sqlite.test.js`).
+- Production build passed: `tsc -b && vite build` built in 16.84s with 0 errors.
+- High-fidelity visual verification screenshots captured:
+  - `phase2_corkboard.png` (428 KB) — Interactive Corkboard with pushed pins, red string links, and evidence cards.
+  - `phase2_interrogation_contradiction.png` (103 KB) — Gideon Vale interrogation with shattered alibi banner.
+  - `phase2_sql_pinning.png` (102 KB) — SQL Grimoire Level 2 query execution with "Pin" evidence action.
+
