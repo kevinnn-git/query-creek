@@ -29,7 +29,17 @@ class DbClient {
     };
 
     this.worker.onerror = (err) => {
-      console.error('[DbClient] Worker error:', err);
+      console.error('[DbClient] Worker error detected. Initiating recovery restart:', err);
+      try {
+        this.worker?.terminate();
+      } catch (e) {}
+      this.worker = null;
+      this.initialized = false;
+      this.pendingRequests.forEach((p) =>
+        p.reject(new Error('SQLite Worker encountered a fault and was automatically recovered.'))
+      );
+      this.pendingRequests.clear();
+      this.initWorker();
     };
   }
 

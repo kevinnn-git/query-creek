@@ -324,6 +324,44 @@
   - `phase5_epilogue_victory.png` (137 KB) — Campaign victory epilogue with story scroll and SQL badges.
   - `phase5_atmosphere_scene.png` (66 KB) — Frontier scene with updated HUD showing `[Settings O]` action.
 
+---
+
+### [2026-11-14] — Phase 6: Production Optimization, Security Hardening, and Internet Deployment Preparation
+
+#### 1. Database Security & Sandboxing Hardening (`src/db/sqlite.worker.ts`, `src/db/DbClient.ts`)
+- Implemented read-only SQL enforcement requiring all user terminal commands to begin with `SELECT`, `WITH`, `EXPLAIN`, or `PRAGMA`.
+- Implemented word-boundary mutation keyword blocking rejecting `DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `CREATE`, `REPLACE`, `ATTACH`, `DETACH`, `VACUUM`, and `WRITABLE_SCHEMA` anywhere in the statement.
+- Implemented execution row limit ceiling clamping requested results to max 500 rows.
+- Implemented excessive cross-join Cartesian product runaway protection (terminating stream iteration after 5,000 rows to prevent tab OOM).
+- Implemented automatic SQLite Worker recovery in `DbClient.ts` restarting crashed or timed-out worker threads without stalling the render loop.
+- Sanitized SQL error messaging providing pedagogical hints for missing tables, columns, or syntax errors.
+
+#### 2. Vercel & Production Internet Deployment Configuration (`vercel.json`, `vite.config.ts`)
+- Created production `vercel.json` with Cross-Origin Isolation headers:
+  - `Cross-Origin-Opener-Policy: same-origin`
+  - `Cross-Origin-Embedder-Policy: require-corp`
+  - Long-term immutable caching and correct MIME types for `.wasm` and `.glb` assets.
+  - Single-Page Application (SPA) routing rewrites.
+- Configured Vite preview server with matching COOP/COEP headers for identical local-to-production fidelity.
+
+#### 3. Master Documentation & Comprehensive Readme (`README.md`)
+- Overhauled `README.md` with complete architectural documentation, 5-chapter narrative outline, 8-district map reference, 10-level SQL curriculum syllabus, security defense explanations, Web Audio API synthesis breakdown, controls guide, and Vercel deployment instructions.
+
+#### 4. Automated Testing & Verification
+- Unit test suite expanded to **54/54 tests passing (100%)** across 8 test suites:
+  - `security.test.js` (6 tests): Read-only query validation, mutation keyword blocking, semicolon multi-statement injection blocking, attachment directive rejection, row limit clamping.
+  - `save.test.js` (5 tests): State persistence, auto-save checkpointing, restoration, slot retrieval, slot deletion.
+  - `audio.test.js` (3 tests): Audio volume clamping, mute toggling, quality presets.
+  - `combat.test.js` (8 tests): AI states, elemental weaknesses, Dead-Eye time dilation, tactical JOIN queries.
+  - `investigation.test.js` (4 tests): Contradiction evaluation, alibi breaking, corkboard layout.
+  - `advanced_curriculum.test.js` (6 tests): Levels 4-9 semantic validation.
+  - `curriculum.test.js` (5 tests): Levels 0-3 validation.
+  - `sqlite.test.js` (3 tests): Database seeding, schema integrity, JSON functions.
+  - `districts.test.js` (3 tests): Geographic bounds, progressive unlocking, player coordinate detection.
+- `npx tsc --noEmit` passed with 0 errors.
+- `npm run build` completed in 29.07s generating production assets in `dist/`.
+
+
 
 
 

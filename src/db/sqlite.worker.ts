@@ -334,27 +334,90 @@ function executeQuery(sql: string, maxRows: number = 200): QueryResult {
   const start = performance.now();
   const trimmed = sql.trim();
 
-  // Basic security check: disallow destructive system commands
-  const upper = trimmed.toUpperCase();
-  if (upper.includes('ATTACH') || upper.includes('PRAGMA writable_schema')) {
-    throw new Error('Access denied: Unauthorized database directive');
+  if (!trimmed) {
+    throw new Error('Empty query provided');
   }
+
+  // 1. Strip comments (/* ... */ and -- ...) for security parsing
+  const cleanSql = trimmed.replace(/\/\*[\s\S]*?\*\/|--.*$/gm, '').trim();
+  if (!cleanSql) {
+    throw new Error('Query contains only comments without executable statements');
+  }
+
+  // 2. Query-only enforcement: Query must start with read-only operations
+  const firstWord = cleanSql.split(/\s+/)[0]?.toUpperCase();
+  const allowedFirstWords = ['SELECT', 'WITH', 'EXPLAIN', 'PRAGMA'];
+  if (!allowedFirstWords.includes(firstWord)) {
+    throw new Error(
+      `Access Denied: The frontier noir archives are read-only. Statements must begin with SELECT, WITH, or EXPLAIN (received: '${firstWord || 'EMPTY'}').`
+    );
+  }
+
+  // 3. Prohibit data-altering and schema-destructive keywords anywhere in the statement
+  const prohibitedMutations = [
+    'DROP',
+    'DELETE',
+    'INSERT',
+    'UPDATE',
+    'ALTER',
+    'CREATE',
+    'REPLACE',
+    'ATTACH',
+    'DETACH',
+    'VACUUM',
+    'WRITABLE_SCHEMA',
+  ];
+
+  for (const kw of prohibitedMutations) {
+    const wordBoundaryRegex = new RegExp(`\\b${kw}\\b`, 'i');
+    if (wordBoundaryRegex.test(cleanSql)) {
+      throw new Error(
+        `Security Restriction: Mutation command '${kw}' is prohibited. Story and investigation records cannot be modified.`
+      );
+    }
+  }
+
+  // 4. Enforce strict maximum result limits (capped at 500 rows ceiling)
+  const safeMaxRows = Math.max(1, Math.min(maxRows, 500));
 
   const columnNames: string[] = [];
   const rows: (string | number | boolean | null)[][] = [];
 
   let rowCount = 0;
-  db.exec({
-    sql: trimmed,
-    rowMode: 'array',
-    columnNames: columnNames,
-    callback: (row: any[]) => {
-      if (rowCount < maxRows) {
-        rows.push(row);
-      }
-      rowCount++;
-    },
-  });
+
+  try {
+    db.exec({
+      sql: trimmed,
+      rowMode: 'array',
+      columnNames: columnNames,
+      callback: (row: any[]) => {
+        if (rowCount < safeMaxRows) {
+          rows.push(row);
+        }
+        rowCount++;
+
+        // Excessive cross-join / Cartesian product runaway protection (halt after 5000 rows)
+        if (rowCount >= 5000) {
+          return false;
+        }
+      },
+    });
+  } catch (err: any) {
+    // Pedagogical error enrichment
+    const msg = err?.message || String(err);
+    if (msg.includes('no such table')) {
+      throw new Error(
+        `${msg}. Hint: Check the Frontier Schema tab in the Grimoire to inspect available ledger tables.`
+      );
+    } else if (msg.includes('no such column')) {
+      throw new Error(`${msg}. Hint: Check table column spellings in the schema viewer.`);
+    } else if (msg.includes('syntax error')) {
+      throw new Error(
+        `${msg}. Hint: Check SQL keywords, comma placements, and quotation pairings.`
+      );
+    }
+    throw err;
+  }
 
   const duration = performance.now() - start;
   return {
