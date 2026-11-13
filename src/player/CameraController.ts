@@ -60,11 +60,32 @@ export class CameraController {
     const ray = new Ray(playerChestAnchor, camBackDir, this.distance + 0.35);
 
     const hit = this.scene.pickWithRay(ray, (mesh) => {
+      if (!mesh.isPickable) return false;
+      const n = mesh.name.toLowerCase();
+      if (
+        n.startsWith('player') ||
+        n.startsWith('sheriff') ||
+        n === 'frontierground' ||
+        n.includes('particle') ||
+        n.includes('light') ||
+        n.includes('lantern') ||
+        n.includes('prompt') ||
+        n.includes('sensor')
+      ) {
+        return false;
+      }
       return (
-        mesh.isPickable &&
-        mesh.checkCollisions &&
-        !mesh.name.startsWith('player') &&
-        !mesh.name.startsWith('sheriff')
+        mesh.checkCollisions ||
+        n.includes('building') ||
+        n.includes('office') ||
+        n.includes('saloon') ||
+        n.includes('bank') ||
+        n.includes('cliff') ||
+        n.includes('canyon') ||
+        n.includes('wall') ||
+        n.includes('rock') ||
+        n.includes('shelf') ||
+        n.includes('desk')
       );
     });
 
@@ -80,6 +101,10 @@ export class CameraController {
     // 6. Smooth camera position interpolation
     const lerpFactor = Math.min(1.0, deltaTime * 12.0);
     this.currentPosition = Vector3.Lerp(this.currentPosition, desiredPosition, lerpFactor);
+    // Guarantee camera never clips below the ground terrain
+    if (this.currentPosition.y < 0.55) {
+      this.currentPosition.y = 0.55;
+    }
     this.camera.position.copyFrom(this.currentPosition);
 
     // 7. Aim look target: point directly along camera forward vector

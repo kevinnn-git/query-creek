@@ -394,6 +394,39 @@ export class AudioManager {
     noise.start(t);
   }
 
+  /**
+   * Procedural vintage mechanical typewriter key click
+   */
+  public playTypewriterClick() {
+    if (this.isMuted) return;
+    this.resumeContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const t = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.015);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.003));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(2400 + Math.random() * 600, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.005, t + 0.015);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start(t);
+  }
+
   // ==========================================
   // PROCEDURAL FRONTIER AMBIENCE & SALOON PIANO
   // ==========================================

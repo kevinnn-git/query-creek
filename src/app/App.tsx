@@ -15,6 +15,7 @@ import { WorldMapModal } from '../ui/WorldMapModal';
 import { SettingsModal } from '../ui/SettingsModal';
 import { EpilogueModal } from '../ui/EpilogueModal';
 import { SaveManager } from '../save/SaveManager';
+import { AudioManager } from '../audio/AudioManager';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -159,6 +160,7 @@ export const App: React.FC = () => {
         const sceneManager = new SceneManager(engineResult.engine as any);
         sceneManagerRef.current = sceneManager;
         (window as any).__sceneManager = sceneManager;
+        (window as any).__audioManager = AudioManager.getInstance();
         await sceneManager.initializeScene();
 
         // 4. Start Render Loop

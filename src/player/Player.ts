@@ -267,6 +267,11 @@ export class Player {
     this.position.y += this.velocity.y * deltaTime;
     this.position.z += this.velocity.z * deltaTime;
 
+    // World perimeter constraint: clamp within 180x180m open-world terrain (limit +/- 86.0m)
+    const worldLimit = 86.0;
+    this.position.x = Math.max(-worldLimit, Math.min(worldLimit, this.position.x));
+    this.position.z = Math.max(-worldLimit, Math.min(worldLimit, this.position.z));
+
     // 6. Ground clamping (Boardwalk & Dirt Road height check)
     // West and East boardwalks are at y ~ 0.35, dirt thoroughfare at y ~ 0.0
     const onBoardwalk =

@@ -180,6 +180,38 @@ export class SceneManager {
       boardwalkWest.material = woodPbr;
       boardwalkEast.material = woodPbr;
     } catch (e) {}
+
+    // Enclosing Redrock Canyon Perimeter Cliffs (North, South, East, West)
+    try {
+      const cliffPbr = this.assetRegistry.createPbrMaterial(this.scene, 'mat_canyon_cliff', {
+        diffuseId: 'tex_sandstone_diff',
+        normalId: 'tex_sandstone_nor',
+        roughnessId: 'tex_sandstone_rough',
+        roughness: 0.88,
+        uScale: 24,
+        vScale: 4,
+      });
+
+      const cliffConfigs = [
+        { name: 'canyonCliffNorth', width: 190, depth: 14, height: 16, pos: new Vector3(0, 8, 89) },
+        { name: 'canyonCliffSouth', width: 190, depth: 14, height: 16, pos: new Vector3(0, 8, -89) },
+        { name: 'canyonCliffEast', width: 14, depth: 190, height: 16, pos: new Vector3(89, 8, 0) },
+        { name: 'canyonCliffWest', width: 14, depth: 190, height: 16, pos: new Vector3(-89, 8, 0) },
+      ];
+
+      cliffConfigs.forEach((cfg) => {
+        const cliff = MeshBuilder.CreateBox(cfg.name, { width: cfg.width, depth: cfg.depth, height: cfg.height }, this.scene);
+        cliff.position = cfg.pos;
+        cliff.material = cliffPbr;
+        cliff.receiveShadows = true;
+        cliff.checkCollisions = true;
+        try {
+          new PhysicsAggregate(cliff, PhysicsShapeType.BOX, { mass: 0, restitution: 0.05, friction: 0.9 }, this.scene);
+        } catch (_) {}
+      });
+    } catch (e) {
+      console.warn('[SceneManager] Could not create perimeter canyon cliffs:', e);
+    }
   }
 
   private async populateAllDistricts() {

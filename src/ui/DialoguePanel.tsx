@@ -3,6 +3,7 @@ import { MessageSquare, User, ArrowRight, X, Sparkles, FileText, Database, Alert
 import { useGameStore } from '../store/useGameStore';
 import { InterrogationManager } from '../investigation/InterrogationManager';
 import { EvidenceItem } from '../investigation/types';
+import { AudioManager } from '../audio/AudioManager';
 
 export const DialoguePanel: React.FC = () => {
   const {
@@ -38,6 +39,7 @@ export const DialoguePanel: React.FC = () => {
 
   const handleSelectResponse = (resp: any) => {
     setContradictionResult(null);
+    AudioManager.getInstance().playTypewriterClick();
     if (resp.nextId === 'close') {
       setActiveDialogue(null);
       setCurrentStepId(null);
@@ -62,6 +64,7 @@ export const DialoguePanel: React.FC = () => {
     );
 
     if (evalResult.isContradiction && evalResult.rule) {
+      AudioManager.getInstance().playContradictionShatter();
       setContradictionResult({
         success: true,
         title: evalResult.rule.contradictionTitle,
@@ -88,6 +91,7 @@ export const DialoguePanel: React.FC = () => {
         setCurrentStepId(evalResult.nextStepId);
       }
     } else {
+      AudioManager.getInstance().playPageTurn();
       setContradictionResult({
         success: false,
         message: evalResult.feedbackMessage,

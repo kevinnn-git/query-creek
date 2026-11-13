@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { EvidenceItem, CorkboardPin, CorkboardLink } from './types';
+import { AudioManager } from '../audio/AudioManager';
 
 export const Corkboard: React.FC = () => {
   const {
@@ -66,6 +67,7 @@ export const Corkboard: React.FC = () => {
       if (selectedPinForLink !== pin.id) {
         // Connect the two pins!
         connectPins(selectedPinForLink, pin.id, 'Investigative Link');
+        AudioManager.getInstance().playSpellCast('Arcane');
       }
       setSelectedPinForLink(null);
     }
@@ -383,7 +385,10 @@ export const Corkboard: React.FC = () => {
                         <span className="text-[10px] text-emerald-400 font-mono">Pinned</span>
                       ) : (
                         <button
-                          onClick={() => pinEvidence(item.id)}
+                          onClick={() => {
+                            pinEvidence(item.id);
+                            AudioManager.getInstance().playPageTurn();
+                          }}
                           className="px-2 py-0.5 rounded bg-[#4a2e18] hover:bg-[#684021] text-amber-200 text-[10px] font-serif border border-[#c5a059]/40"
                         >
                           Pin to Board
