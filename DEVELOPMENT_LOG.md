@@ -267,5 +267,63 @@
   - `phase4_advanced_sql.png` (89 KB) — Arcane SQL Grimoire with Level 8 CTE and Window Function challenge.
   - `phase4_boss_encounter.png` (248 KB) — Chapter 5 final boss objective with Dead-Eye targeting reticle.
 
+---
+
+### [2026-11-14] — Phase 5: Cinematic Graphics, Procedural Audio, Save System & Gameplay Polish
+
+#### 1. Procedural Web Audio Engine (`src/audio/AudioManager.ts`)
+- Implemented a 100% self-contained, zero-dependency, zero-cost procedural audio synthesizer using the native Web Audio API ($0 asset budget constraint satisfied):
+  - **Firearms & Combat:** Gunpowder noise burst with lowpass frequency sweep and low-frequency transient punch (`playRevolverShot()`).
+  - **Dynamic Locomotion:** Surface-aware footstep synthesis distinguishing hollow wood boardwalk thuds from dirt grit crunches (`playFootstep('wood' | 'dirt')`).
+  - **Dead-Eye Feedback:** Lowpass saw filter drops simulating adrenaline rush slowdown on entry (`playDeadEyeEnter()`) and harmonic pitch rise on exit (`playDeadEyeExit()`).
+  - **Elemental Incantations:** Multi-element synthesizers for Shock (high-voltage frequency modulation), Fire (combustive low roar), and Arcane (chime harmonics) (`playSpellCast()`).
+  - **Investigation Stingers:** Dramatic four-chord dissonance for broken alibis (`playContradictionShatter()`) and four-note major arpeggios for discovered clues (`playQuestSuccess()`).
+  - **Atmospheric Foley:** Filtered bandpass noise simulating vintage parchment turns (`playPageTurn()`).
+  - **Frontier Ambience:** Dual-oscillator low canyon wind drone coupled with procedural pentatonic saloon honky-tonk piano arpeggios (`startAmbience()`, `stopAmbience()`).
+  - Master, SFX, Ambience, and Music gain node buses with global mute toggle.
+
+#### 2. Environmental Dust & Hardware-Tuned Atmosphere (`src/engine/AtmosphereManager.ts`)
+- Built particle simulation system producing drifting golden-hour canyon dust blowing westward across Main Street.
+- Created graphics presets tailored for the developer's **NVIDIA GeForce GTX 1650 Max-Q** and integrated GPUs:
+  - **Low:** 512x512 shadow maps, 0 particles, basic post-processing.
+  - **Medium (Default):** 1024x1024 shadow maps, 350 particles, sepia vignette.
+  - **High:** 2048x2048 Poisson-sampled shadow maps, 800 particles, full bloom and contrast grading.
+
+#### 3. Save, Load & Checkpoint Subsystem (`src/save/SaveManager.ts`)
+- Built pure, decoupled state persistence system writing to browser `localStorage` under `qc_save_*`:
+  - Serializes current chapter, objective, curriculum level, health, mana, unlocked districts, collected evidence, corkboard pins/links, and solved contradictions.
+  - Manual save slot persistence (`slot_1`, `slot_manual`).
+  - Automatic checkpoints triggered on chapter transitions and boss victory (`autosave`).
+  - Slot listing sorted chronologically and individual slot deletion.
+  - Decoupled `SaveStateProvider` interface preventing circular dependencies with React/Zustand.
+
+#### 4. Settings Dashboard & Victory Epilogue Modals (`src/ui/SettingsModal.tsx`, `src/ui/EpilogueModal.tsx`)
+- **Sheriff’s Settings & Archive Dashboard:** Accessible via `[Settings O]` HUD action or `O` hotkey with three comprehensive tabs:
+  - **Audio & Sound:** Volume sliders for Master, SFX, Ambience, and Saloon Piano, plus master mute.
+  - **Graphics Quality:** Low, Medium, and High preset selector displaying hardware target specifications.
+  - **Save & Load Game:** Manual save button, auto-checkpoint overview, and slot restoration dashboard.
+- **Victory Epilogue Modal:** Cinematic victory scroll triggering upon Gideon Vale's defeat:
+  - Narrates Rowan Hale's survival in the Old Pioneer Church belfry and the recovery of the true Master Ledger.
+  - Displays achievement badge cards: *Arcane Sheriff Star*, *Grand Magister of SQL*, and *The Master Ledger*.
+  - Offers buttons for returning to the Frontier World Map or entering post-campaign Free Roam.
+
+#### 5. Automated Testing & Verification
+- Unit test suite expanded to **47/47 tests passing (100%)** across 7 suites:
+  - `save.test.js` (5 tests): State serialization, auto-save checkpointing, state restoration, chronological slot retrieval, slot deletion.
+  - `audio.test.js` (3 tests): Volume slider clamping, mute toggling, AtmosphereManager shadow resolution mapping.
+  - `combat.test.js` (8 tests): AI states, elemental weaknesses, Dead-Eye time dilation, tactical JOIN queries.
+  - `investigation.test.js` (4 tests): Contradiction evaluation, alibi breaking, corkboard layout.
+  - `advanced_curriculum.test.js` (6 tests): Levels 4-9 semantic validation.
+  - `curriculum.test.js` (5 tests): Levels 0-3 validation.
+  - `sqlite.test.js` (3 tests): Database seeding, schema integrity, JSON functions.
+  - `districts.test.js` (3 tests): Geographic bounds, progressive unlocking, player coordinate detection.
+- Production build passed: `tsc -b && vite build` built in 36.82s generating all chunks with 0 errors.
+- Visual verification screenshots captured:
+  - `phase5_settings_dashboard.png` (70 KB) — Settings modal with audio sliders and sound toggles.
+  - `phase5_graphics_presets.png` (73 KB) — Graphics quality presets with GTX 1650 Max-Q tuning.
+  - `phase5_epilogue_victory.png` (137 KB) — Campaign victory epilogue with story scroll and SQL badges.
+  - `phase5_atmosphere_scene.png` (66 KB) — Frontier scene with updated HUD showing `[Settings O]` action.
+
+
 
 

@@ -21,6 +21,8 @@ import { SpellManager } from '../combat/SpellManager';
 import { BossManager } from '../combat/BossManager';
 import { DistrictManager } from '../world/DistrictManager';
 import { useGameStore } from '../store/useGameStore';
+import { AudioManager } from '../audio/AudioManager';
+import { AtmosphereManager } from './AtmosphereManager';
 
 export interface SceneDiagnostics {
   fps: number;
@@ -48,6 +50,7 @@ export class SceneManager {
   public deadEyeManager: DeadEyeManager;
 
   private lastTime: number = performance.now();
+  private footstepTimer: number = 0;
 
   constructor(engine: Engine) {
     this.engine = engine;
@@ -109,6 +112,12 @@ export class SceneManager {
 
     // 7. Setup Cinematic Post-Processing Pipeline
     this.pipeline.setupPipeline(this.scene, this.camera, 'medium');
+
+    // 8. Setup Atmospheric Dust & Wind Particles
+    AtmosphereManager.getInstance().setupAtmosphere(this.scene, 'medium');
+
+    // 9. Start Procedural Ambient Sound
+    AudioManager.getInstance().startAmbience();
 
     console.log('[SceneManager] Scene, Districts & Player initialized successfully.');
   }
@@ -501,6 +510,11 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
         if (this.playerInput.deadEye) {
           this.playerInput.deadEye = false;
           this.deadEyeManager.toggle();
+          if (this.deadEyeManager.isActive) {
+            AudioManager.getInstance().playDeadEyeEnter();
+          } else {
+            AudioManager.getInstance().playDeadEyeExit();
+          }
         }
 
         // Update Dead-Eye Time Dilation & Focus
@@ -515,6 +529,25 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
         // 1. Update Player Movement & Locomotion Animations
         this.player.update(effectiveDt);
 
+        // Footstep Audio
+        const isMoving =
+          this.playerInput.forward ||
+          this.playerInput.backward ||
+          this.playerInput.left ||
+          this.playerInput.right;
+        if (isMoving && !this.playerInput.jump) {
+          const stepInterval = this.playerInput.sprint ? 0.32 : 0.48;
+          this.footstepTimer += effectiveDt;
+          if (this.footstepTimer >= stepInterval) {
+            this.footstepTimer = 0;
+            const pos = this.player.getPosition();
+            const isBoardwalk = Math.abs(pos.x - -8.2) < 3.0 && Math.abs(pos.z) < 18.0;
+            AudioManager.getInstance().playFootstep(isBoardwalk ? 'wood' : 'dirt');
+          }
+        } else {
+          this.footstepTimer = 0.2;
+        }
+
         // 2. Consume Mouse Deltas & Update Camera
         const { dx, dy } = this.playerInput.consumeMouseDeltas();
         this.cameraController.update(this.player.getPosition(), dx, dy, effectiveDt);
@@ -522,6 +555,7 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
         // 3. Handle Player Attack (Left-Click)
         if (this.playerInput.attack) {
           this.playerInput.attack = false;
+          AudioManager.getInstance().playRevolverShot();
           const aimDir = this.cameraController.getForwardVector();
           const muzzlePos = this.player.getPosition().add(new Vector3(0, 1.2, 0));
           this.enemyManager.shootPlayerBullet(muzzlePos, aimDir);
@@ -575,6 +609,7 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
     console.log(`[SceneManager] Interacting with: ${interactable.name}`);
 
     if (interactable.type === 'clue' || interactable.type === 'document') {
+      AudioManager.getInstance().playPageTurn();
       store.setActiveClue(interactable.payload);
     } else if (interactable.type === 'npc') {
       store.setActiveDialogue(interactable.payload);
@@ -608,6 +643,8 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
 
   public dispose() {
     this.stopRenderLoop();
+    AtmosphereManager.getInstance().dispose();
+    AudioManager.getInstance().dispose();
     this.playerInput.dispose();
     this.assetRegistry.disposeAll();
     this.scene.dispose();

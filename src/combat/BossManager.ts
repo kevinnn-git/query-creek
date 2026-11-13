@@ -2,6 +2,8 @@ import { Scene, Mesh, MeshBuilder, Vector3, StandardMaterial, Color3, DynamicTex
 import { HybridAssetRegistry } from '../engine/HybridAssetRegistry';
 import { useGameStore } from '../store/useGameStore';
 import { dbClient } from '../db/DbClient';
+import { AudioManager } from '../audio/AudioManager';
+import { SaveManager } from '../save/SaveManager';
 
 export class BossManager {
   private static instance: BossManager | null = null;
@@ -167,6 +169,7 @@ export class BossManager {
         const broke = store.damageBossShield(damage, element);
         this.updateBillboardUI();
         this.updateShieldVisuals();
+        AudioManager.getInstance().playContradictionShatter();
 
         const remaining = useGameStore.getState().bossShieldLayers;
         const msg = remaining > 0
@@ -226,10 +229,14 @@ export class BossManager {
 
   private onBossDefeated() {
     if (this.shieldMesh) this.shieldMesh.setEnabled(false);
+    AudioManager.getInstance().playQuestTriumph();
+    SaveManager.getInstance().autoSaveCheckpoint('Epilogue: Frontier Justice Restored');
+    
     useGameStore.getState().setObjective(
       'Epilogue: Frontier Justice Restored',
       'Rowan Hale survived in hiding at the Old Belfry. The master ledger is secured and Query Creek is free.'
     );
+    useGameStore.getState().setActiveModal('epilogue');
   }
 
   public update(deltaTime: number, timeScale: number) {
@@ -248,3 +255,4 @@ export class BossManager {
     return useGameStore.getState().bossDefeated;
   }
 }
+

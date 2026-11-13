@@ -3,6 +3,7 @@ import { ElementType, SpellData } from './types';
 import { EnemyManager } from './EnemyManager';
 import { DeadEyeManager } from './DeadEyeManager';
 import { BossManager } from './BossManager';
+import { AudioManager } from '../audio/AudioManager';
 
 export interface CastResult {
   success: boolean;
@@ -73,6 +74,9 @@ export class SpellManager {
       const spellName = String(firstRow[spellNameIdx] || 'Arcane Bolt');
       const baseDamage = Number(firstRow[damageIdx] || 45);
       const element = (firstRow[elementIdx] as ElementType) || 'Arcane';
+
+      // Play synthesized elemental spellcast sound
+      AudioManager.getInstance().playSpellCast(element);
 
       const targetsHit: { enemyId: number; damageDealt: number; wasWeakness: boolean }[] = [];
 

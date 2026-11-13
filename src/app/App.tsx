@@ -12,6 +12,9 @@ import { DialoguePanel } from '../ui/DialoguePanel';
 import { QuestNotification } from '../ui/QuestNotification';
 import { Corkboard } from '../investigation/Corkboard';
 import { WorldMapModal } from '../ui/WorldMapModal';
+import { SettingsModal } from '../ui/SettingsModal';
+import { EpilogueModal } from '../ui/EpilogueModal';
+import { SaveManager } from '../save/SaveManager';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -32,6 +35,49 @@ export const App: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     let diagInterval: any = null;
+
+    // Initialize SaveManager State Provider
+    SaveManager.getInstance().setStateProvider({
+      getState: () => {
+        const s = useGameStore.getState();
+        return {
+          chapterNumber: s.chapterNumber,
+          currentChapter: s.currentChapter,
+          currentObjective: s.currentObjective,
+          curriculumLevel: s.curriculumLevel,
+          unlockedDistricts: s.unlockedDistricts,
+          playerHealth: s.playerHealth,
+          playerMaxHealth: s.playerMaxHealth,
+          playerMana: s.playerMana,
+          playerMaxMana: s.playerMaxMana,
+          evidenceList: s.evidenceList,
+          corkboardPins: s.corkboardPins,
+          corkboardLinks: s.corkboardLinks,
+          solvedContradictions: s.solvedContradictions,
+          queryHistory: s.queryHistory,
+        };
+      },
+      restoreState: (data) => {
+        const s = useGameStore.getState();
+        s.setObjective(data.currentChapter, data.currentObjective, data.chapterNumber);
+        s.setCurriculumLevel(data.curriculumLevel);
+        useGameStore.setState({
+          playerHealth: data.playerHealth,
+          playerMaxHealth: data.playerMaxHealth,
+          playerMana: data.playerMana,
+          playerMaxMana: data.playerMaxMana,
+          unlockedDistricts: data.unlockedDistricts || ['sheriff_office', 'saloon', 'bank'],
+          evidenceList: data.evidenceList || [],
+          corkboardPins: data.corkboardPins || [],
+          corkboardLinks: data.corkboardLinks || [],
+          solvedContradictions: data.solvedContradictions || [],
+          queryHistory: data.queryHistory || [],
+        });
+      },
+      showNotification: (title, desc) => {
+        useGameStore.getState().showQuestNotification(title, desc);
+      },
+    });
 
     // Check URL parameters for testing & visual verification
     const searchParams = new URLSearchParams(window.location.search);
@@ -59,6 +105,12 @@ export const App: React.FC = () => {
         'Shatter Mayor Gideon Vale’s Arcane Aegis shield using decrypted elemental spells.',
         5
       );
+    }
+    if (searchParams.get('settings') === '1') {
+      useGameStore.getState().setActiveModal('settings');
+    }
+    if (searchParams.get('epilogue') === '1') {
+      useGameStore.getState().setActiveModal('epilogue');
     }
 
     async function initGame() {
@@ -157,14 +209,25 @@ export const App: React.FC = () => {
         e.preventDefault();
         setActiveModal(activeModal === 'map' ? 'none' : 'map');
       }
-      // Esc: Close active modal (clue, dialogue, grimoire, corkboard, map) or open MainMenu
+      // O: Toggle Settings & Archive Dashboard
+      else if (e.key === 'o' || e.key === 'O') {
+        e.preventDefault();
+        setActiveModal(activeModal === 'settings' ? 'none' : 'settings');
+      }
+      // Esc: Close active modal (clue, dialogue, grimoire, corkboard, map, settings, epilogue) or open MainMenu
       else if (e.key === 'Escape') {
         e.preventDefault();
         if (activeModal === 'clue') {
           setActiveClue(null);
         } else if (activeModal === 'dialogue') {
           setActiveDialogue(null);
-        } else if (activeModal === 'terminal' || activeModal === 'corkboard' || activeModal === 'map') {
+        } else if (
+          activeModal === 'terminal' ||
+          activeModal === 'corkboard' ||
+          activeModal === 'map' ||
+          activeModal === 'settings' ||
+          activeModal === 'epilogue'
+        ) {
           setActiveModal('none');
         } else if (activeModal === 'none') {
           setActiveModal('menu');
@@ -196,6 +259,8 @@ export const App: React.FC = () => {
       <SqlTerminal />
       <Corkboard />
       <WorldMapModal />
+      <SettingsModal />
+      <EpilogueModal />
       <MainMenu />
     </div>
   );

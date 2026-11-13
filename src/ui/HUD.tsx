@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Compass, Shield, Terminal, Activity, Cpu, Pin, Heart, Sparkles, Crosshair, Map } from 'lucide-react';
+import { BookOpen, Compass, Shield, Terminal, Activity, Cpu, Pin, Heart, Sparkles, Crosshair, Map, Settings } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { DeadEyeCombatBar } from './DeadEyeCombatBar';
 
@@ -70,8 +70,18 @@ export const HUD: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Buttons: Open SQL Grimoire / Corkboard / World Map */}
+        {/* Action Buttons: Open SQL Grimoire / Corkboard / World Map / Settings */}
         <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            onClick={() => setActiveModal(activeModal === 'settings' ? 'none' : 'settings')}
+            className="flex items-center gap-2 px-3 py-2 rounded bg-gradient-to-br from-[#2a1c12] to-[#160f0a] border border-[#c5a059]/80 text-[#c5a059] hover:text-amber-200 hover:border-[#c5a059] shadow-xl transition-all"
+            title="Open Settings & Archive (O)"
+          >
+            <Settings className="w-3.5 h-3.5 text-[#c5a059]" />
+            <span className="font-serif font-bold text-xs uppercase tracking-wider">Settings</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[#120f0d] text-[10px] font-mono border border-[#4a2e18]">O</kbd>
+          </button>
+
           <button
             onClick={() => setActiveModal(activeModal === 'map' ? 'none' : 'map')}
             className="flex items-center gap-2 px-3 py-2 rounded bg-gradient-to-br from-[#2a1c12] to-[#160f0a] border border-[#c5a059]/80 text-[#c5a059] hover:text-amber-200 hover:border-[#c5a059] shadow-xl transition-all"

@@ -33,9 +33,9 @@ export interface GameStore {
   addQueryHistory: (query: string) => void;
 
   // UI State
-  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map';
+  activeModal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map' | 'settings' | 'epilogue';
   investigationTab: 'grimoire' | 'corkboard' | 'dossier';
-  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map') => void;
+  setActiveModal: (modal: 'none' | 'terminal' | 'menu' | 'corkboard' | 'grimoire' | 'dialogue' | 'clue' | 'map' | 'settings' | 'epilogue') => void;
   setInvestigationTab: (tab: 'grimoire' | 'corkboard' | 'dossier') => void;
 
   // Investigation & Corkboard Subsystem

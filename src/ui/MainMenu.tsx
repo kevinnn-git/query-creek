@@ -66,6 +66,14 @@ export const MainMenu: React.FC = () => {
             <BookOpen className="w-4 h-4 text-[#c5a059]" />
             <span>Open SQL Grimoire</span>
           </button>
+
+          <button
+            onClick={() => setActiveModal('settings')}
+            className="w-full py-2.5 px-6 rounded font-serif font-semibold text-sm bg-[#221812] hover:bg-[#2d2018] border border-[#4a2e18] text-amber-200 transition-all flex items-center justify-center gap-2"
+          >
+            <Settings className="w-4 h-4 text-[#c5a059]" />
+            <span>Settings & Saved Ledgers</span>
+          </button>
         </div>
 
         <p className="text-[11px] text-amber-200/40 font-serif italic">
