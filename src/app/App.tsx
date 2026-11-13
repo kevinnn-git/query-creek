@@ -33,6 +33,8 @@ export const App: React.FC = () => {
   } = useGameStore();
 
   useEffect(() => {
+    (window as any).__dbClient = dbClient;
+    (window as any).__useGameStore = useGameStore;
     let isMounted = true;
     let diagInterval: any = null;
 
@@ -155,6 +157,7 @@ export const App: React.FC = () => {
         // 3. Initialize Scene, Player & World
         const sceneManager = new SceneManager(engineResult.engine as any);
         sceneManagerRef.current = sceneManager;
+        (window as any).__sceneManager = sceneManager;
         await sceneManager.initializeScene();
 
         // 4. Start Render Loop
