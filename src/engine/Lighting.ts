@@ -13,25 +13,25 @@ export class LightingManager {
   private lanternLights: PointLight[] = [];
 
   public setupCinematicLighting(scene: Scene, enableShadows: boolean = true) {
-    // 1. Golden Hour Sun Light
-    this.sunLight = new DirectionalLight('sunLight', new Vector3(-0.6, -0.7, 0.4).normalize(), scene);
-    this.sunLight.position = new Vector3(30, 45, -20);
-    this.sunLight.intensity = 2.4;
-    this.sunLight.diffuse = new Color3(1.0, 0.86, 0.68); // Warm frontier sunlight
-    this.sunLight.specular = new Color3(0.9, 0.8, 0.7);
+    // 1. Golden Hour Sun Light (Warm frontier sunlight from horizon)
+    this.sunLight = new DirectionalLight('sunLight', new Vector3(-0.55, -0.65, 0.52).normalize(), scene);
+    this.sunLight.position = new Vector3(35, 45, -25);
+    this.sunLight.intensity = 3.0;
+    this.sunLight.diffuse = new Color3(1.0, 0.88, 0.70); // Warm rich sunlight
+    this.sunLight.specular = new Color3(0.9, 0.75, 0.55);
 
-    // 2. Hemispheric Sky & Sand Ambient Light
+    // 2. Hemispheric Sky & Desert Ambient Fill (prevents muddy black shadows)
     this.hemiLight = new HemisphericLight('hemiLight', new Vector3(0, 1, 0), scene);
-    this.hemiLight.intensity = 0.65;
-    this.hemiLight.diffuse = new Color3(0.55, 0.65, 0.85); // Blue-toned ambient sky
-    this.hemiLight.groundColor = new Color3(0.42, 0.32, 0.22); // Desert sand bounce
+    this.hemiLight.intensity = 1.05;
+    this.hemiLight.diffuse = new Color3(0.70, 0.78, 0.92); // Soft blue sky ambient
+    this.hemiLight.groundColor = new Color3(0.55, 0.42, 0.28); // Warm canyon sand bounce
 
-    // 3. Atmospheric Frontier Dust Fog
+    // 3. Atmospheric Distance Haze
     scene.fogMode = Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.0035;
-    scene.fogColor = new Color3(0.68, 0.58, 0.46);
+    scene.fogDensity = 0.0022;
+    scene.fogColor = new Color3(0.72, 0.60, 0.46);
 
-    // 4. Shadows
+    // 4. Soft Shadows
     if (enableShadows) {
       this.shadowGenerator = new ShadowGenerator(1024, this.sunLight);
       this.shadowGenerator.useBlurExponentialShadowMap = true;
@@ -47,7 +47,7 @@ export class LightingManager {
     const lantern = new PointLight(name, position, scene);
     lantern.diffuse = new Color3(1.0, 0.65, 0.25); // Warm kerosene flame
     lantern.intensity = 1.2;
-    lantern.range = 14;
+    lantern.range = 8.0;
     this.lanternLights.push(lantern);
     return lantern;
   }

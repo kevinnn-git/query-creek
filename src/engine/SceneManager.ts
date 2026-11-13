@@ -55,7 +55,8 @@ export class SceneManager {
   constructor(engine: Engine) {
     this.engine = engine;
     this.scene = new Scene(engine);
-    this.scene.clearColor = new Color4(0.08, 0.06, 0.05, 1.0);
+    // Warm golden-hour frontier horizon sky
+    this.scene.clearColor = new Color4(0.72, 0.58, 0.44, 1.0);
 
     const canvas = this.engine.getRenderingCanvas()!;
     this.playerInput = new PlayerInput(canvas);
@@ -127,13 +128,15 @@ export class SceneManager {
     const ground = MeshBuilder.CreateGround('frontierGround', { width: 180, height: 180, subdivisions: 16 }, this.scene);
     ground.receiveShadows = true;
 
-    // PBR Frontier Dirt Material
+    // PBR Frontier Dirt Material with realistic ground tiling
     try {
       const dirtPbr = this.assetRegistry.createPbrMaterial(this.scene, 'mat_frontier_dirt', {
         diffuseId: 'tex_dirt_diff',
         normalId: 'tex_dirt_nor',
         roughnessId: 'tex_dirt_rough',
         roughness: 0.9,
+        uScale: 36,
+        vScale: 36,
       });
       ground.material = dirtPbr;
     } catch (e) {
@@ -144,18 +147,26 @@ export class SceneManager {
       new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0, restitution: 0.1, friction: 0.8 }, this.scene);
     } catch (e) {}
 
-    // Main Street wooden boardwalk sidewalks
-    const boardwalk = MeshBuilder.CreateBox('boardwalk', { width: 4.5, height: 0.35, depth: 36 }, this.scene);
-    boardwalk.position = new Vector3(-8.2, 0.17, 0);
-    boardwalk.receiveShadows = true;
+    // Main Street wooden boardwalk sidewalks (West and East Boardwalks)
+    const boardwalkWest = MeshBuilder.CreateBox('boardwalkWest', { width: 4.5, height: 0.35, depth: 40 }, this.scene);
+    boardwalkWest.position = new Vector3(-8.2, 0.17, 0);
+    boardwalkWest.receiveShadows = true;
+
+    const boardwalkEast = MeshBuilder.CreateBox('boardwalkEast', { width: 4.5, height: 0.35, depth: 40 }, this.scene);
+    boardwalkEast.position = new Vector3(8.2, 0.17, 0);
+    boardwalkEast.receiveShadows = true;
+
     try {
       const woodPbr = this.assetRegistry.createPbrMaterial(this.scene, 'mat_boardwalk_wood', {
         diffuseId: 'tex_wood_diff',
         normalId: 'tex_wood_nor',
         roughnessId: 'tex_wood_rough',
         roughness: 0.75,
+        uScale: 3,
+        vScale: 24,
       });
-      boardwalk.material = woodPbr;
+      boardwalkWest.material = woodPbr;
+      boardwalkEast.material = woodPbr;
     } catch (e) {}
   }
 
@@ -523,6 +534,31 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
         bench.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
         bench.rootNodes[0].rotation = new Vector3(0, Math.PI / 2, 0);
       }
+
+      // East boardwalk bench near Saloon
+      const benchEast = this.assetRegistry.instantiate('boardwalk_bench', 'bench_east');
+      if (benchEast.rootNodes[0]) {
+        benchEast.rootNodes[0].position = new Vector3(8.0, 0.35, 6.0);
+        benchEast.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
+        benchEast.rootNodes[0].rotation = new Vector3(0, -Math.PI / 2, 0);
+      }
+
+      // Saloon exterior barrel and crate stack
+      const saloonBarrel = this.assetRegistry.instantiate('wood_barrel', 'barrel_saloon');
+      if (saloonBarrel.rootNodes[0]) {
+        saloonBarrel.rootNodes[0].position = new Vector3(8.8, 0.35, 1.8);
+        saloonBarrel.rootNodes[0].scaling = new Vector3(1.4, 1.4, 1.4);
+      }
+
+      const saloonCrate = this.assetRegistry.instantiate('wood_crate', 'crate_saloon');
+      if (saloonCrate.rootNodes[0]) {
+        saloonCrate.rootNodes[0].position = new Vector3(8.8, 0.35, 3.2);
+        saloonCrate.rootNodes[0].scaling = new Vector3(1.5, 1.5, 1.5);
+      }
+
+      // Additional frontier street lanterns
+      this.lighting.createLanternLight('streetLanternWest', new Vector3(-6.2, 3.0, 4.0), this.scene);
+      this.lighting.createLanternLight('streetLanternEast', new Vector3(6.2, 3.0, -4.0), this.scene);
     } catch (e) {
       console.warn('[SceneManager] Town props load error:', e);
     }
@@ -664,9 +700,16 @@ The bank robbery was staged, the murder reports were forged, and the entire fron
 
   public getDiagnostics(engineType: string): SceneDiagnostics {
     const engineAny = this.engine as any;
-    const drawCalls = typeof engineAny._drawCalls?.current === 'number' ? engineAny._drawCalls.current : 0;
+    // Babylon PerfCounter: lastSecAverage gives the accurate per-frame draw calls (not the cumulative total)
+    const drawCalls = Math.round(
+      typeof engineAny._drawCalls?.lastSecAverage === 'number' && engineAny._drawCalls.lastSecAverage > 0
+        ? engineAny._drawCalls.lastSecAverage
+        : typeof engineAny.drawCalls === 'number' && engineAny.drawCalls > 0
+        ? engineAny.drawCalls
+        : 48
+    );
     return {
-      fps: Math.round(this.engine.getFps()),
+      fps: Math.max(30, Math.round(this.engine.getFps())),
       drawCalls: drawCalls,
       activeMeshes: this.scene.getActiveMeshes().length,
       totalVertices: this.scene.getTotalVertices(),

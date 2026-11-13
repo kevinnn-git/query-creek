@@ -89,6 +89,9 @@ export class HybridAssetRegistry {
     const loadPromise = (async () => {
       console.log(`[HybridAssetRegistry] Loading GLB container: ${assetId} (${entry.localPath})`);
       const container = await SceneLoader.LoadAssetContainerAsync('', entry.localPath, scene);
+      container.materials.forEach((m) => {
+        (m as any).maxSimultaneousLights = 4;
+      });
       this.containers.set(assetId, container);
       this.loadingPromises.delete(assetId);
       return container;
@@ -135,23 +138,38 @@ export class HybridAssetRegistry {
     roughnessId?: string;
     metallic?: number;
     roughness?: number;
+    uScale?: number;
+    vScale?: number;
   }): PBRMaterial {
     if (this.materials.has(matName)) {
       return this.materials.get(matName) as PBRMaterial;
     }
 
     const pbr = new PBRMaterial(matName, scene);
+    pbr.maxSimultaneousLights = 4; // Crucial for WebGPU limit (max 12 uniform buffers per shader stage)
     pbr.metallic = config.metallic ?? 0.0;
     pbr.roughness = config.roughness ?? 0.8;
 
+    const u = config.uScale ?? 1;
+    const v = config.vScale ?? 1;
+
     if (config.diffuseId) {
-      pbr.albedoTexture = this.getTexture(scene, config.diffuseId);
+      const tex = this.getTexture(scene, config.diffuseId);
+      tex.uScale = u;
+      tex.vScale = v;
+      pbr.albedoTexture = tex;
     }
     if (config.normalId) {
-      pbr.bumpTexture = this.getTexture(scene, config.normalId);
+      const tex = this.getTexture(scene, config.normalId);
+      tex.uScale = u;
+      tex.vScale = v;
+      pbr.bumpTexture = tex;
     }
     if (config.roughnessId) {
-      pbr.microSurfaceTexture = this.getTexture(scene, config.roughnessId);
+      const tex = this.getTexture(scene, config.roughnessId);
+      tex.uScale = u;
+      tex.vScale = v;
+      pbr.microSurfaceTexture = tex;
     }
 
     this.materials.set(matName, pbr);

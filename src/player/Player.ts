@@ -1,9 +1,13 @@
 import { Scene } from '@babylonjs/core/scene';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 
 import { PlayerInput } from './PlayerInput';
@@ -51,10 +55,10 @@ export class Player {
   public async loadCharacter(shadowGen?: ShadowGenerator | null): Promise<void> {
     console.log('[Player] Loading rigged character model and animation clips...');
 
-    // Load knight_animations.glb which contains HumanArmature + 12 animation clips
+    // Load sheriff_animated.glb which contains CharacterArmature + 12 animation clips
     const result = await SceneLoader.ImportMeshAsync(
       '',
-      '/assets/characters/knight_animations.glb',
+      '/assets/characters/sheriff_animated.glb',
       '',
       this.scene
     );
@@ -62,24 +66,37 @@ export class Player {
     const rootMesh = result.meshes[0];
     rootMesh.parent = this.rootNode;
     rootMesh.position = new Vector3(0, 0, 0);
-    rootMesh.scaling = new Vector3(1.2, 1.2, 1.2);
+    // Real-world adult human proportions (1.85m tall)
+    rootMesh.scaling = new Vector3(1.0, 1.0, 1.0);
     // Face forward initially
     rootMesh.rotation = new Vector3(0, 0, 0);
 
     this.characterMeshes = result.meshes;
 
-    if (shadowGen) {
-      result.meshes.forEach((m) => {
-        if (m.name !== '__root__') {
-          shadowGen.addShadowCaster(m);
-          m.receiveShadows = true;
+    // Enhance character materials for cinematic PBR western look & WebGPU compliance
+    result.meshes.forEach((m) => {
+      if (m.material) {
+        (m.material as any).maxSimultaneousLights = 4;
+        if (m.material instanceof PBRMaterial) {
+          m.material.roughness = Math.max(0.68, m.material.roughness || 0.75);
+          m.material.metallic = Math.min(0.2, m.material.metallic || 0.05);
         }
-      });
+      }
+      if (shadowGen && m.name !== '__root__') {
+        shadowGen.addShadowCaster(m);
+        m.receiveShadows = true;
+      }
+    });
+
+    // Attach western cowboy hat to the Head bone/mesh
+    const headNode = this.scene.getTransformNodeByName('Head') || this.scene.getMeshByName('Adventurer_Head');
+    if (headNode) {
+      this.createCowboyHat(headNode, shadowGen);
     }
 
     // Cache and configure animation groups
     for (const ag of result.animationGroups) {
-      // Normalize animation names: e.g. 'HumanArmature|Idle' -> 'Idle'
+      // Normalize animation names: e.g. 'CharacterArmature|Idle' -> 'Idle'
       const simpleName = ag.name.includes('|') ? ag.name.split('|')[1] : ag.name;
       this.animGroups.set(simpleName, ag);
       ag.stop();
@@ -89,6 +106,60 @@ export class Player {
 
     // Start with Idle animation
     this.playAnimation('Idle', 0.2);
+  }
+
+  private createCowboyHat(headNode: TransformNode | AbstractMesh, shadowGen?: ShadowGenerator | null): AbstractMesh {
+    // 1. Hat Crown with cattleman crease
+    const crown = MeshBuilder.CreateCylinder('sheriffHatCrown', {
+      diameterTop: 0.26,
+      diameterBottom: 0.32,
+      height: 0.22,
+      tessellation: 32,
+    }, this.scene);
+    crown.position = new Vector3(0, 0.14, 0.02);
+    crown.scaling = new Vector3(1.0, 0.9, 1.15);
+
+    // 2. Wide curved brim
+    const brim = MeshBuilder.CreateCylinder('sheriffHatBrim', {
+      diameterTop: 0.62,
+      diameterBottom: 0.60,
+      height: 0.025,
+      tessellation: 36,
+    }, this.scene);
+    brim.position = new Vector3(0, 0.04, 0.02);
+    brim.scaling = new Vector3(1.15, 0.8, 1.35);
+    brim.rotation = new Vector3(-0.06, 0, 0);
+
+    // 3. Hatband
+    const band = MeshBuilder.CreateTorus('sheriffHatBand', {
+      diameter: 0.31,
+      thickness: 0.035,
+      tessellation: 28,
+    }, this.scene);
+    band.position = new Vector3(0, 0.06, 0.02);
+    band.scaling = new Vector3(1.0, 0.5, 1.15);
+
+    // Merge into single mesh
+    const hatMesh = Mesh.MergeMeshes([crown, brim, band], true, true, undefined, false, true);
+    if (!hatMesh) return crown;
+    hatMesh.name = 'sheriffCowboyHat';
+
+    // Saddle-brown weathered leather PBR material
+    const hatMat = new PBRMaterial('mat_cowboy_hat', this.scene);
+    hatMat.albedoColor = new Color3(0.18, 0.12, 0.06);
+    hatMat.roughness = 0.82;
+    hatMat.metallic = 0.05;
+    hatMesh.material = hatMat;
+
+    hatMesh.parent = headNode;
+    hatMesh.position = new Vector3(0, 0.12, 0.02);
+
+    if (shadowGen) {
+      shadowGen.addShadowCaster(hatMesh);
+      hatMesh.receiveShadows = true;
+    }
+
+    return hatMesh;
   }
 
   public playAnimation(name: string, transitionDuration: number = 0.15) {
@@ -196,9 +267,12 @@ export class Player {
     this.position.z += this.velocity.z * deltaTime;
 
     // 6. Ground clamping (Boardwalk & Dirt Road height check)
-    // In our district, boardwalk is at y ~ 0.25, ground at y ~ 0.0
-    const onBoardwalk = this.position.x >= -10 && this.position.x <= -6 && Math.abs(this.position.z) <= 20;
-    const groundLevel = onBoardwalk ? 0.25 : 0.0;
+    // West and East boardwalks are at y ~ 0.35, dirt thoroughfare at y ~ 0.0
+    const onBoardwalk =
+      ((this.position.x >= -10.5 && this.position.x <= -5.8) ||
+       (this.position.x >= 5.8 && this.position.x <= 10.5)) &&
+      Math.abs(this.position.z) <= 22;
+    const groundLevel = onBoardwalk ? 0.35 : 0.0;
 
     if (this.position.y <= groundLevel) {
       this.position.y = groundLevel;

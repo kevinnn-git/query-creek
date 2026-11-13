@@ -15,7 +15,7 @@
   },
   {
     "id": "sheriff_model",
-    "name": "Arcane Sheriff (Adventurer)",
+    "name": "Arcane Sheriff (Adventurer Rigged)",
     "category": "character",
     "creator": "Quaternius",
     "sourceUrl": "https://quaternius.com",
@@ -23,8 +23,8 @@
     "license": "CC0",
     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
     "format": "glb",
-    "localPath": "/assets/characters/sheriff.glb",
-    "fileSize": 1272560,
+    "localPath": "/assets/characters/sheriff_animated.glb",
+    "fileSize": 1632860,
     "status": "validated"
   },
   {
