@@ -24,6 +24,10 @@ export class PlayerInput {
     this.bindEvents();
   }
 
+  private handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+  };
+
   private bindEvents() {
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
@@ -31,7 +35,7 @@ export class PlayerInput {
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     this.canvas.addEventListener('mouseup', this.handleMouseUp);
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.canvas.addEventListener('contextmenu', this.handleContextMenu);
   }
 
   public setEnabled(enabled: boolean) {
@@ -199,7 +203,9 @@ export class PlayerInput {
     window.removeEventListener('keyup', this.handleKeyUp);
     document.removeEventListener('pointerlockchange', this.handlePointerLockChange);
     this.canvas.removeEventListener('mousemove', this.handleMouseMove);
-    this.canvas.removeEventListener('click', this.requestPointerLock);
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
   }
 }
 

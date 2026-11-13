@@ -28,6 +28,29 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  build: {
+    chunkSizeWarningLimit: 7000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@babylonjs')) {
+            return 'babylonjs-vendor';
+          }
+          if (id.includes('node_modules/@uiw') || id.includes('node_modules/@codemirror')) {
+            return 'codemirror-vendor';
+          }
+          if (
+            id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/zustand') ||
+            id.includes('node_modules/lucide-react')
+          ) {
+            return 'react-vendor';
+          }
+        },
+      },
+    },
+  },
   assetsInclude: ['**/*.glb', '**/*.gltf', '**/*.wasm'],
 });
 

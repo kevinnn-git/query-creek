@@ -37,6 +37,7 @@ export const App: React.FC = () => {
     (window as any).__useGameStore = useGameStore;
     let isMounted = true;
     let diagInterval: any = null;
+    let handleResize: (() => void) | null = null;
 
     // Initialize SaveManager State Provider
     SaveManager.getInstance().setStateProvider({
@@ -172,7 +173,7 @@ export const App: React.FC = () => {
         }, 1000);
 
         // 6. Handle Window Resize
-        const handleResize = () => {
+        handleResize = () => {
           engineResult.engine.resize();
         };
         window.addEventListener('resize', handleResize);
@@ -193,6 +194,9 @@ export const App: React.FC = () => {
     return () => {
       isMounted = false;
       if (diagInterval) clearInterval(diagInterval);
+      if (handleResize) {
+        window.removeEventListener('resize', handleResize);
+      }
       if (sceneManagerRef.current) {
         sceneManagerRef.current.dispose();
       }
